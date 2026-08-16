@@ -1,7 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Windows.Input;
-using TimeTracker.Commons;
+using System.Windows.Threading;
 using TimeTracker.Data;
 using TimeTracker.Models;
 
@@ -10,144 +12,196 @@ namespace TimeTracker.ViewModels;
 public class MainViewModel : INotifyPropertyChanged
 {
     private readonly AppDbContext _db;
+    private DispatcherTimer? _globalTimer;
+    private TaskModel? _activeTask;
 
-    /// <summary>
-    /// Выбранная дата
-    /// </summary>
+    private string _newTaskName = string.Empty;
     private DateTime _selectedDate = DateTime.Today;
+    private string _totalTimeFormatted = "00:00:00";
 
-    /// <summary>
-    /// Общее затраченное время на выбранную дату
-    /// </summary>
-    private TimeSpan _totalTimeSpent;
+    public ObservableCollection<TaskModel> Tasks { get; } = new();
 
-    /// <summary>
-    /// Кастомная коллекция, во избежание множественных аллокаций UI элементов
-    /// </summary>
-    public BulkObservableCollection<TodoTask> Tasks { get; } = new();
+    public string NewTaskName
+    {
+        get => _newTaskName;
+        set
+        {
+            _newTaskName = value;
+            OnPropertyChanged();
+        }
+    }
 
     public DateTime SelectedDate
     {
         get => _selectedDate;
         set
         {
-            if (_selectedDate == value) return;
             _selectedDate = value;
-            OnPropertyChanged(nameof(SelectedDate));
-            UpdateTotalTimeForDate(); // Пересчитываем время при смене даты (п.5)
+            OnPropertyChanged();
+            LoadTasksAndLogsAsync();
         }
     }
+    public string TotalTimeFormatted { get => _totalTimeFormatted; set { _totalTimeFormatted = value; OnPropertyChanged(); } }
 
-    public TimeSpan TotalTimeSpent
-    {
-        get => _totalTimeSpent;
-        private set
-        {
-            _totalTimeSpent = value;
-            OnPropertyChanged(nameof(TotalTimeSpent));
-        }
-    }
-
-    public ICommand LoadTasksCommand { get; }
-    public RelayCommand<string> AddTaskCommand { get; }
+    //public ICommand InitializeCommand { get; }
+    public ICommand AddCommand { get; }
+    public ICommand ToggleTimerCommand { get; }
 
     public MainViewModel(AppDbContext db)
     {
         _db = db;
-        LoadTasksCommand = new RelayCommand(async () => await LoadDataAsync());
-        AddTaskCommand = new RelayCommand<string>(async (title) => await AddTaskAsync(title), (title) => !string.IsNullOrWhiteSpace(title));
+        //InitializeCommand = new RelayCommand<object>(_ => Initialize());
+        AddCommand = new RelayCommand<object>(async _ => await AddTaskAsync());
+        ToggleTimerCommand = new RelayCommand<TaskModel>(ToggleTimer);
     }
 
-    /// <summary>
-    /// Асинхронный метод загрузки, вызываемый из Loaded-события окна View
-    /// </summary>
-    public async Task LoadDataAsync()
+    public async Task Initialize()
     {
-        // Вычитываем данные эффективным запросом
-        var data = await _db.Tasks
+        //_db.Database.EnsureCreated();
+        await LoadTasksAndLogsAsync();
+        SetupGlobalTimer();
+    }
+
+    private async Task LoadTasksAndLogsAsync()
+    {
+        var dateOnly = DateOnly.FromDateTime(SelectedDate);
+
+        // Вытаскиваем логи за выбранный день
+        var logs = await _db.TimeLogs
             .AsNoTracking()
-            .Include(t => t.TimeLogs)
-            // TODO: сделать выбор 2х дат, по умолчанию вчера и сегодня
-            //.Where(t => t.LastUpdatedAt > DateTime.Today.Date.AddDays(-1))
-            .Where(t => t.LastUpdatedAt > _selectedDate)
-            // Сортировка по убыванию даты/времени
+            .Where(l => l.Date == dateOnly)
+            .ToDictionaryAsync(l => l.TaskId, l => l.SecondsSpent);
+
+        // Сортировка: по убыванию даты и времени последнего выполнения
+        var allTasks = await _db.Tasks
+            .AsNoTracking()
             .OrderByDescending(t => t.LastUpdatedAt)
-            .ToListAsync();
+            .ToArrayAsync();
 
-        // Добавляем пачкой без вызова 1000 ивентов (Оптимизация аллокаций)
-        Tasks.ReplaceRange(data);
+        Tasks.Clear();
+        foreach (var task in allTasks)
+        {
+            task.CurrentDaySeconds = logs.TryGetValue(task.Id, out int seconds) ? seconds : 0;
+            // Если задача была активна, но мы сменили дату - визуально останавливаем её отображение
+            if (task == _activeTask && dateOnly != DateOnly.FromDateTime(DateTime.Today)) task.IsRunning = false;
+            Tasks.Add(task);
+        }
 
-        UpdateTotalTimeForDate();
+        CalculateTotalTime();
     }
 
-    private async Task AddTaskAsync(string? title)
+    private void SetupGlobalTimer()
     {
-        if (string.IsNullOrWhiteSpace(title)) return;
-
-        var newTask = new TodoTask
+        // Оптимизация: один таймер на всё приложение вместо таймера в каждом объекте
+        _globalTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _globalTimer.Tick += async (s, e) =>
         {
-            Title = title,
+            if (_activeTask != null)
+            {
+                _activeTask.CurrentDaySeconds++;
+                CalculateTotalTime();
+
+                // Оптимизация аллокаций и диска: батчинг. Сохраняем в БД каждые 10 секунд или при стопе
+                if (_activeTask.CurrentDaySeconds % 10 == 0)
+                {
+                    await SaveCurrentProgressAsync();
+                }
+            }
+        };
+        _globalTimer.Start();
+    }
+
+    private async Task AddTaskAsync()
+    {
+        if (string.IsNullOrWhiteSpace(NewTaskName)) return;
+
+        var task = new TaskModel
+        {
+            Name = NewTaskName,
+            CreatedAt = DateTime.UtcNow,
             LastUpdatedAt = DateTime.UtcNow
         };
 
-        _db.Tasks.Add(newTask);
+        _db.Tasks.Add(task);
         await _db.SaveChangesAsync();
 
-        // Добавляем новую задачу в начало списка
-        Tasks.Insert(0, newTask);
+        // Добавляем в начало списка
+        Tasks.Insert(0, task);
+        NewTaskName = string.Empty;
     }
 
-    /// <summary>
-    /// Расчет времени за выбранный день
-    /// </summary>
-    private void UpdateTotalTimeForDate()
+    private void ToggleTimer(TaskModel? task)
     {
-        var targetDate = SelectedDate.Date;
+        if (task == null) return;
 
-        // Оптимизация: используем чистый LINQ без промежуточных аллокаций списков
-        var totalTicks = Tasks
-            .SelectMany(t => t.TimeLogs)
-            .Where(log => log.Date.Date == targetDate)
-            .Sum(log => log.Duration.Ticks);
-
-        TotalTimeSpent = TimeSpan.FromTicks(totalTicks);
-    }
-
-    /// <summary>
-    /// Вызывается таймером при остановке/трекинге задачи
-    /// </summary>
-    public async Task LogTimeAsync(TodoTask task, TimeSpan duration)
-    {
-        var today = DateTime.Today;
-        // Обновляем метку времени
-        task.LastUpdatedAt = DateTime.UtcNow;
-
-        // Ищем, трекали ли мы уже эту таску сегодня
-        var existingLog = task.TimeLogs.FirstOrDefault(l => l.Date.Date == today);
-        if (existingLog != null)
+        if (task.IsRunning)
         {
-            existingLog.Duration += duration;
+            task.IsRunning = false;
+            _activeTask = null;
+            SaveCurrentProgressAsync();
         }
         else
         {
-            var newLog = new TimeLog { Date = today, Duration = duration };
-            task.TimeLogs.Add(newLog);
-            _db.TimeLogs.Add(newLog);
+            // Останавливаем старую задачу
+            if (_activeTask != null)
+            {
+                _activeTask.IsRunning = false;
+                SaveCurrentProgressAsync();
+            }
+
+            // Переключаем на сегодняшний день, если запуск идет из прошлого
+            if (SelectedDate != DateTime.Today) SelectedDate = DateTime.Today;
+
+            _activeTask = task;
+            _activeTask.IsRunning = true;
+
+            _activeTask.LastUpdatedAt = DateTime.UtcNow;
+            _db.Entry(_activeTask).State = EntityState.Modified;
+            _db.SaveChanges();
         }
+    }
 
-        await _db.SaveChangesAsync();
+    private async Task SaveCurrentProgressAsync()
+    {
+        if (_activeTask == null) return;
 
-        // Пересортируем коллекцию на UI в начало
-        var index = Tasks.IndexOf(task);
-        if (index > 0)
+        var dateOnly = DateOnly.FromDateTime(DateTime.Today);
+        var log = await _db.TimeLogs
+            .Where(l => l.TaskId == _activeTask.Id && l.Date == dateOnly)
+            .FirstOrDefaultAsync();
+
+        if (log == null)
         {
-            Tasks.Move(index, 0);
+            log = new TaskTimeLog
+            {
+                TaskId = _activeTask.Id,
+                Date = dateOnly,
+                SecondsSpent = _activeTask.CurrentDaySeconds
+            };
+            _db.TimeLogs.Add(log);
         }
+        else
+        {
+            log.SecondsSpent = _activeTask.CurrentDaySeconds;
+        }
+        await _db.SaveChangesAsync();
+    }
 
-        UpdateTotalTimeForDate();
+    private void CalculateTotalTime()
+    {
+        int total = Tasks.Sum(t => t.CurrentDaySeconds);
+        var ts = TimeSpan.FromSeconds(total);
+        TotalTimeFormatted = string.Create(null, $"{ts.Hours:D2}:{ts.Minutes:D2}:{ts.Seconds:D2}");
+    }
+
+    public async Task CloseConnection()
+    {
+        _globalTimer?.Stop();
+        await SaveCurrentProgressAsync();
+        _db.Dispose();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
-
-    protected void OnPropertyChanged(string prop) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+    protected void OnPropertyChanged([CallerMemberName] string prop = "") =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 }

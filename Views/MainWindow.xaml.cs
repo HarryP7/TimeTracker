@@ -20,7 +20,7 @@ public partial class MainWindow : Window
         if (DataContext is MainViewModel viewModel)
         {
             // Асинхронный безопасный старт без фризов UI-потока
-            await viewModel.LoadDataAsync();
+            await viewModel.Initialize();
         }
     }
 

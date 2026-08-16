@@ -5,17 +5,42 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:TimeTracker"
         mc:Ignorable="d"
-        Title="Time Tracker" Height="450" Width="800"
+        Title="Time Tracker" Height="600" Width="900"
         WindowStartupLocation="CenterScreen">
+
+    <!-- Используем встроенное событие зажатия окна для инициализации -->
+    <Window.Triggers>
+        <EventTrigger RoutedEvent="Window.Loaded">
+            <BeginStoryboard>
+                <Storyboard/>
+            </BeginStoryboard>
+        </EventTrigger>
+    </Window.Triggers>
+    
     <Grid Margin="15">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
+        <!-- Блок выбора даты и общего времени -->
+        <Border Grid.Row="0" Background="#f8f9fa" Padding="10" CornerRadius="5" Margin="0,0,0,15">
+            <Grid>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                    <TextBlock Text="Дата просмотра:" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="Bold"/>
+                    <DatePicker SelectedDate="{Binding SelectedDate, Mode=TwoWay}" Width="150"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <TextBlock Text="Всего за день: " VerticalAlignment="Center" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding TotalTimeFormatted}" VerticalAlignment="Center" FontSize="16" Foreground="#2c3e50" FontWeight="Black"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+        
         <!-- Блок добавления задачи -->
-        <Grid Grid.Row="0" Margin="0,0,0,15">
+        <Grid Grid.Row="1" Margin="0,0,0,15">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
@@ -26,43 +51,18 @@
                     Padding="15,5" FontSize="14" Background="#3498db" Foreground="White" BorderThickness="0"/>
         </Grid>
 
-        <!-- Блок Установки даты и общего времени выполнения -->
-        <Grid Grid.Row="1" Margin="0,0,0,15">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="150"/>
-                <ColumnDefinition Width="100"/>
-            </Grid.ColumnDefinitions>
-            <DatePicker SelectedDate="{Binding SelectedDate, Mode=TwoWay}" />
-            <TextBlock Text="{Binding TotalTimeSpent, StringFormat='{}{0:hh\\:mm\\:ss}'}" />
-        </Grid>
-
         <!-- Таблица с задачами -->
         <DataGrid Grid.Row="2" ItemsSource="{Binding Tasks}" AutoGenerateColumns="False" 
-                  CanUserAddRows="False" GridLinesVisibility="Horizontal" HeadersVisibility="Column">
+                      CanUserAddRows="False" GridLinesVisibility="Horizontal" HeadersVisibility="Column" Background="White">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Название задачи" Binding="{Binding Name}" Width="*" />
-                <!-- <DataGridTextColumn Header="Название задачи" Binding="{Binding Name}" Width="*">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <ItemsControl ItemsSource="{Binding TimeLogs}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="{Binding Date, StringFormat='{0:dd.MM.yyyy}'}" Margin="5,0"/>
-                                            <TextBlock Text="{Binding Duration, StringFormat='{}{0:hh\\:mm}'}" />
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </DataTemplate>
-                </DataGridTextColumn> -->
-                <DataGridTextColumn Header="Затраченное время" Binding="{Binding FormattedTime}" Width="130" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Название задачи" Binding="{Binding Name}" Width="*"/>
+                <DataGridTextColumn Header="Время за выбранный день" Binding="{Binding FormattedTime}" Width="180" IsReadOnly="True"/>
                 <DataGridTemplateColumn Width="100">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <Button Content="{Binding ButtonText}" 
-                                    Command="{Binding DataContext.ToggleTimerCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
-                                    CommandParameter="{Binding}" Margin="2"/>                            
+                                        Command="{Binding DataContext.ToggleTimerCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                        CommandParameter="{Binding}" Margin="2" Padding="10,2"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>

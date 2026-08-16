@@ -5,16 +5,16 @@ namespace TimeTracker.Data;
 
 public class AppDbContext : DbContext
 {
-    public DbSet<TodoTask> Tasks { get; set; }
-    public DbSet<TimeLog> TimeLogs { get; set; }
+    public DbSet<TaskModel> Tasks { get; set; }
+    public DbSet<TaskTimeLog> TimeLogs { get; set; }
 
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // У одной задачи много записей истории времени
-        modelBuilder.Entity<TimeLog>()
-            .HasOne<TodoTask>()
+        modelBuilder.Entity<TaskTimeLog>()
+            .HasOne<TaskModel>()
             .WithMany(t => t.TimeLogs)
             .HasForeignKey(tl => tl.TaskId);
     }

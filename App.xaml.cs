@@ -24,6 +24,8 @@ namespace TimeTracker
 
             var services = new ServiceCollection();
 
+            services.AddSingleton<IConfiguration>(config);
+
             // Регистрируем контекст БД с вычиткой строки подключения из appsettings
             services.AddDbContext<AppDbContext>(options =>
                 options.UseNpgsql(config.GetConnectionString("DefaultConnection")));
@@ -38,14 +40,13 @@ namespace TimeTracker
             ServiceProvider = services.BuildServiceProvider();
 
             // Миграция/создание БД при старте (вне конструкторов классов)
-            using (var scope = ServiceProvider.CreateScope())
-            {
-                var db = scope.GetRequiredService<AppDbContext>();
-                db.Database.EnsureCreated();
-            }
+            var db = ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Database.EnsureCreated();
 
             var mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
             mainWindow.Show();
+
+            base.OnStartup(e);
         }
 
     }

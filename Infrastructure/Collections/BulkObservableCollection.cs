@@ -1,7 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 
-namespace TimeTracker.Commons;
+namespace TimeTracker.Infrastructure.Collections;
 
 /// <summary>
 /// Кастомная реализация ObservableCollection. 
