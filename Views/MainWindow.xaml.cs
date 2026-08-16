@@ -9,18 +9,19 @@ namespace TimeTracker.Views;
 /// </summary>
 public partial class MainWindow : Window
 {
-    private readonly MainViewModel _viewModel;
-
     public MainWindow()
     {
         InitializeComponent();
-        _viewModel = new MainViewModel();
-        DataContext = _viewModel; // Привязываем логику к визуалу
+        this.Loaded += MainWindow_Loaded;
     }
 
-    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        _viewModel.CloseConnection(); // Безопасно закрываем таймеры и БД при выходе
-        base.OnClosing(e);
+        if (DataContext is MainViewModel viewModel)
+        {
+            // Асинхронный безопасный старт без фризов UI-потока
+            await viewModel.LoadDataAsync();
+        }
     }
+
 }

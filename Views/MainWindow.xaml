@@ -10,6 +10,7 @@
     <Grid Margin="15">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -25,18 +26,43 @@
                     Padding="15,5" FontSize="14" Background="#3498db" Foreground="White" BorderThickness="0"/>
         </Grid>
 
+        <!-- Блок Установки даты и общего времени выполнения -->
+        <Grid Grid.Row="1" Margin="0,0,0,15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="150"/>
+                <ColumnDefinition Width="100"/>
+            </Grid.ColumnDefinitions>
+            <DatePicker SelectedDate="{Binding SelectedDate, Mode=TwoWay}" />
+            <TextBlock Text="{Binding TotalTimeSpent, StringFormat='{}{0:hh\\:mm\\:ss}'}" />
+        </Grid>
+
         <!-- Таблица с задачами -->
-        <DataGrid Grid.Row="1" ItemsSource="{Binding Tasks}" AutoGenerateColumns="False" 
+        <DataGrid Grid.Row="2" ItemsSource="{Binding Tasks}" AutoGenerateColumns="False" 
                   CanUserAddRows="False" GridLinesVisibility="Horizontal" HeadersVisibility="Column">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Название задачи" Binding="{Binding Name}" Width="*"/>
+                <DataGridTextColumn Header="Название задачи" Binding="{Binding Name}" Width="*" />
+                <!-- <DataGridTextColumn Header="Название задачи" Binding="{Binding Name}" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ItemsControl ItemsSource="{Binding TimeLogs}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Date, StringFormat='{0:dd.MM.yyyy}'}" Margin="5,0"/>
+                                            <TextBlock Text="{Binding Duration, StringFormat='{}{0:hh\\:mm}'}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </DataTemplate>
+                </DataGridTextColumn> -->
                 <DataGridTextColumn Header="Затраченное время" Binding="{Binding FormattedTime}" Width="130" IsReadOnly="True"/>
                 <DataGridTemplateColumn Width="100">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <Button Content="{Binding ButtonText}" 
                                     Command="{Binding DataContext.ToggleTimerCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
-                                    CommandParameter="{Binding}" Margin="2"/>
+                                    CommandParameter="{Binding}" Margin="2"/>                            
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
