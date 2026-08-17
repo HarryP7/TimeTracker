@@ -11,8 +11,6 @@ public class TaskModel : INotifyPropertyChanged
     private string _name;
     private int _currentDaySeconds;
     private bool _isRunning;
-    // NOTE: Возможно убрать
-    //private DispatcherTimer _timer;
 
     [Column("id")]
     public int Id { get => _id; set { _id = value; OnPropertyChanged(); } }
@@ -30,10 +28,10 @@ public class TaskModel : INotifyPropertyChanged
         set { _currentDaySeconds = value; OnPropertyChanged(nameof(TotalSeconds)); OnPropertyChanged(nameof(FormattedTime)); }
     }
 
-    [Column("last_updated_at")]
     /// <summary>
-    /// Последнее обновлние. Для сортировки
+    /// Последнее обновление. Для сортировки
     /// </summary>
+    [Column("last_updated_at")]
     public DateTime LastUpdatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
@@ -65,7 +63,6 @@ public class TaskModel : INotifyPropertyChanged
     public string ButtonText => IsRunning ? "Стоп" : "Начать";
 
     [NotMapped]
-    //public string FormattedTime => TimeSpan.FromSeconds(TotalSeconds).ToString(@"hh\:mm\:ss");
     public string FormattedTime
     {
         get
@@ -75,26 +72,6 @@ public class TaskModel : INotifyPropertyChanged
             return string.Create(null, $"{ts.Hours:D2}:{ts.Minutes:D2}:{ts.Seconds:D2}");
         }
     }
-
-    // NOTE: Возможно убрать
-    //public void Start(Action onTick)
-    //{
-    //    IsRunning = true;
-    //    _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-    //    _timer.Tick += (s, e) =>
-    //    {
-    //        TotalSeconds++;
-    //        onTick?.Invoke(); // Вызываем сохранение каждую секунду
-    //    };
-    //    _timer.Start();
-    //}
-    //// NOTE: Возможно убрать
-    //public void Stop()
-    //{
-    //    IsRunning = false;
-    //    _timer?.Stop();
-    //    _timer = null;
-    //}
 
     public event PropertyChangedEventHandler PropertyChanged;
 

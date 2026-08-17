@@ -43,21 +43,18 @@ public class MainViewModel : INotifyPropertyChanged
     }
     public string TotalTimeFormatted { get => _totalTimeFormatted; set { _totalTimeFormatted = value; OnPropertyChanged(); } }
 
-    //public ICommand InitializeCommand { get; }
     public ICommand AddCommand { get; }
     public ICommand ToggleTimerCommand { get; }
 
     public MainViewModel(AppDbContext db)
     {
         _db = db;
-        //InitializeCommand = new RelayCommand<object>(_ => Initialize());
         AddCommand = new RelayCommand<object>(async _ => await AddTaskAsync());
-        ToggleTimerCommand = new RelayCommand<TaskModel>(ToggleTimer);
+        ToggleTimerCommand = new RelayCommand<TaskModel>(async (task) => await ToggleTimerAsync(task));
     }
 
     public async Task Initialize()
     {
-        //_db.Database.EnsureCreated();
         await LoadTasksAndLogsAsync();
         SetupGlobalTimer();
     }
@@ -130,7 +127,7 @@ public class MainViewModel : INotifyPropertyChanged
         NewTaskName = string.Empty;
     }
 
-    private void ToggleTimer(TaskModel? task)
+    private async Task ToggleTimerAsync(TaskModel? task)
     {
         if (task == null) return;
 
@@ -138,7 +135,7 @@ public class MainViewModel : INotifyPropertyChanged
         {
             task.IsRunning = false;
             _activeTask = null;
-            SaveCurrentProgressAsync();
+            await SaveCurrentProgressAsync();
         }
         else
         {
@@ -146,7 +143,7 @@ public class MainViewModel : INotifyPropertyChanged
             if (_activeTask != null)
             {
                 _activeTask.IsRunning = false;
-                SaveCurrentProgressAsync();
+                await SaveCurrentProgressAsync();
             }
 
             // Переключаем на сегодняшний день, если запуск идет из прошлого
@@ -157,7 +154,7 @@ public class MainViewModel : INotifyPropertyChanged
 
             _activeTask.LastUpdatedAt = DateTime.UtcNow;
             _db.Entry(_activeTask).State = EntityState.Modified;
-            _db.SaveChanges();
+            await _db.SaveChangesAsync();
         }
     }
 
