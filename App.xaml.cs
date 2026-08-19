@@ -41,7 +41,7 @@ namespace TimeTracker
 
             // Миграция/создание БД при старте (вне конструкторов классов)
             var db = ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Database.EnsureCreated();
+            db.Database.MigrateAsync();
 
             var mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
             mainWindow.Show();

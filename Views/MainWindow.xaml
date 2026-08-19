@@ -22,7 +22,6 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Блок выбора даты и общего времени -->
@@ -38,7 +37,7 @@
                 </StackPanel>
             </Grid>
         </Border>
-        
+
         <!-- Блок добавления задачи -->
         <Grid Grid.Row="1" Margin="0,0,0,15">
             <Grid.ColumnDefinitions>
@@ -46,27 +45,56 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <TextBox Text="{Binding NewTaskName, UpdateSourceTrigger=PropertyChanged}" 
-                     FontSize="14" Padding="5" Margin="0,0,10,0" VerticalContentAlignment="Center"/>
-            <Button Grid.Column="1" Content="Добавить" Command="{Binding AddCommand}" 
-                    Padding="15,5" FontSize="14" Background="#3498db" Foreground="White" BorderThickness="0"/>
+                     FontSize="14" Padding="6" Margin="0,0,10,0" VerticalContentAlignment="Center"/>
+            <Button Grid.Column="1" Content="Добавить задачу" Command="{Binding AddCommand}" 
+                    Padding="20,5" FontSize="14" Background="#3498db" Foreground="White" BorderThickness="0"/>
         </Grid>
 
-        <!-- Таблица с задачами -->
+        <!-- Основная таблица задач -->
         <DataGrid Grid.Row="2" ItemsSource="{Binding Tasks}" AutoGenerateColumns="False" 
-                      CanUserAddRows="False" GridLinesVisibility="Horizontal" HeadersVisibility="Column" Background="White">
+                  CanUserAddRows="False" GridLinesVisibility="Horizontal" HeadersVisibility="Column" 
+                  Background="White" RowDetailsVisibilityMode="VisibleWhenSelected">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Название задачи" Binding="{Binding Name}" Width="*"/>
-                <DataGridTextColumn Header="Время за выбранный день" Binding="{Binding FormattedTime}" Width="180" IsReadOnly="True"/>
-                <DataGridTemplateColumn Width="100">
+                <DataGridTextColumn Header="Всего за день" Binding="{Binding FormattedTotalTime}" Width="120" IsReadOnly="True"/>
+
+                <!-- Кнопка «+» для добавления подзадачи -->
+                <DataGridTemplateColumn Width="60">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <Button Content="{Binding ButtonText}" 
-                                        Command="{Binding DataContext.ToggleTimerCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
-                                        CommandParameter="{Binding}" Margin="2" Padding="10,2"/>
+                            <Button Content="＋" Command="{Binding DataContext.AddSubTaskCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                    CommandParameter="{Binding}" Margin="2" Background="#3498db" Foreground="White" FontWeight="Bold" BorderThickness="0"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
             </DataGrid.Columns>
+
+            <!-- Детали строки: Список подзадач, разворачивается при выборе задачи -->
+            <DataGrid.RowDetailsTemplate>
+                <DataTemplate>
+                    <Border Background="#f1f2f6" Padding="10" BorderBrush="#dcdde1" BorderThickness="0,1,0,1">
+                        <StackPanel>
+                            <TextBlock Text="Подзадачи и логи времени:" FontWeight="Bold" Margin="5,0,0,5" Foreground="#57606f"/>
+                            <DataGrid ItemsSource="{Binding SubTasks}" AutoGenerateColumns="False" CanUserAddRows="False" 
+                                      HeadersVisibility="None" Background="Transparent" BorderThickness="0" GridLinesVisibility="None">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Binding="{Binding DisplayName}" Width="*"/>
+                                    <DataGridTextColumn Binding="{Binding FormattedTime}" Width="100" IsReadOnly="True"/>
+                                    <DataGridTemplateColumn Width="100">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Content="{Binding ButtonText}" 
+                                                        Command="{Binding DataContext.ToggleTimerCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                        CommandParameter="{Binding}" Margin="2" Padding="10,2"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </DataGrid.RowDetailsTemplate>
         </DataGrid>
     </Grid>
 

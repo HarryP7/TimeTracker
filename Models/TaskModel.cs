@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Runtime.CompilerServices;
 
@@ -9,8 +10,7 @@ public class TaskModel : INotifyPropertyChanged
 {
     private int _id;
     private string _name;
-    private int _currentDaySeconds;
-    private bool _isRunning;
+    private int _totalDaySeconds;
 
     [Column("id")]
     public int Id { get => _id; set { _id = value; OnPropertyChanged(); } }
@@ -21,13 +21,6 @@ public class TaskModel : INotifyPropertyChanged
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    [Column("total_seconds")]
-    public int TotalSeconds
-    {
-        get => _currentDaySeconds;
-        set { _currentDaySeconds = value; OnPropertyChanged(nameof(TotalSeconds)); OnPropertyChanged(nameof(FormattedTime)); }
-    }
-
     /// <summary>
     /// Последнее обновление. Для сортировки
     /// </summary>
@@ -35,40 +28,33 @@ public class TaskModel : INotifyPropertyChanged
     public DateTime LastUpdatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
+    /// Коллекция подзадач
+    /// </summary>
+    [NotMapped]
+    public ObservableCollection<SubTaskLog> SubTasks { get; set; } = new();
+
+    /// <summary>
     /// Хранит время за выбранный на экране день (не мапится напрямую в таблицу tasks)
     /// </summary>
     [NotMapped]
-    public int CurrentDaySeconds
+    public int TotalDaySeconds
     {
-        get => _currentDaySeconds;
-        set { _currentDaySeconds = value; OnPropertyChanged(); OnPropertyChanged(nameof(FormattedTime)); }
-    }
-
-    /// <summary>
-    /// История времени. Навигационное свойство
-    /// </summary>
-    public List<TaskTimeLog> TimeLogs { get; set; } = new();
-
-    /// <summary>
-    /// Запущен ли таймер. Не сохраняем в БД, нужно только для UI
-    /// </summary>
-    [NotMapped]
-    public bool IsRunning
-    {
-        get => _isRunning;
-        set { _isRunning = value; OnPropertyChanged(); OnPropertyChanged(nameof(ButtonText)); }
+        get => _totalDaySeconds;
+        set
+        {
+            _totalDaySeconds = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(FormattedTotalTime));
+        }
     }
 
     [NotMapped]
-    public string ButtonText => IsRunning ? "Стоп" : "Начать";
-
-    [NotMapped]
-    public string FormattedTime
+    public string FormattedTotalTime
     {
         get
         {
             // Оптимизация аллокаций: структуры TimeSpan не аллоцируют память в куче
-            var ts = TimeSpan.FromSeconds(CurrentDaySeconds);
+            var ts = TimeSpan.FromSeconds(TotalDaySeconds);
             return string.Create(null, $"{ts.Hours:D2}:{ts.Minutes:D2}:{ts.Seconds:D2}");
         }
     }
