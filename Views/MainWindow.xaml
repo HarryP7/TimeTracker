@@ -59,7 +59,7 @@
                 <DataGridTextColumn Header="Всего за день" Binding="{Binding FormattedTotalTime}" Width="120" IsReadOnly="True"/>
 
                 <!-- Кнопка «+» для добавления подзадачи -->
-                <DataGridTemplateColumn Width="60">
+                <DataGridTemplateColumn Width="40">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <Button Content="＋" Command="{Binding DataContext.AddSubTaskCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
@@ -78,9 +78,9 @@
                             <DataGrid ItemsSource="{Binding SubTasks}" AutoGenerateColumns="False" CanUserAddRows="False" 
                                       HeadersVisibility="None" Background="Transparent" BorderThickness="0" GridLinesVisibility="None">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Binding="{Binding DisplayName}" Width="*"/>
-                                    <DataGridTextColumn Binding="{Binding FormattedTime}" Width="100" IsReadOnly="True"/>
-                                    <DataGridTemplateColumn Width="100">
+                                    <DataGridTextColumn Binding="{Binding DisplayName}" Width="680"/>
+                                    <DataGridTextColumn Binding="{Binding FormattedTime}" Width="110" IsReadOnly="True"/>
+                                    <DataGridTemplateColumn Width="50">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <Button Content="{Binding ButtonText}" 

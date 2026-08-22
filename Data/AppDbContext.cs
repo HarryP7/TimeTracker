@@ -19,4 +19,3 @@ public class AppDbContext : DbContext
             .HasForeignKey(tl => tl.TaskId);
     }
 }
-

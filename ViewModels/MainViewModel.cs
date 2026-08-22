@@ -109,6 +109,7 @@ public class MainViewModel : INotifyPropertyChanged
         var allLogs = await _db.SubTaskLogs
             .AsNoTracking()
             .Where(l => l.CreatedAt == dateOnly)
+            .OrderByDescending(t => t.LastUpdatedAt)
             .ToArrayAsync();
 
         Tasks.Clear();
@@ -188,6 +189,7 @@ public class MainViewModel : INotifyPropertyChanged
         _db.SubTaskLogs.Add(defaultLog);
         await _db.SaveChangesAsync();
 
+        // TODO: Удалить?
         task.SubTasks.Add(defaultLog);
 
         // Добавляем в начало списка
@@ -221,7 +223,8 @@ public class MainViewModel : INotifyPropertyChanged
         // Если мы сейчас смотрим сегодняшний день — сразу добавляем в интерфейс
         if (SelectedDate.Date == DateTime.Today)
         {
-            parentTask.SubTasks.Add(subTask);
+            // Добавляем в начало списка
+            parentTask.SubTasks.Insert(0, subTask);
         }
     }
 
