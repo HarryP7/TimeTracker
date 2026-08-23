@@ -7,15 +7,6 @@
         mc:Ignorable="d"
         Title="Time Tracker" Height="600" Width="900"
         WindowStartupLocation="CenterScreen">
-
-    <!-- Используем встроенное событие зажатия окна для инициализации -->
-    <Window.Triggers>
-        <EventTrigger RoutedEvent="Window.Loaded">
-            <BeginStoryboard>
-                <Storyboard/>
-            </BeginStoryboard>
-        </EventTrigger>
-    </Window.Triggers>
     
     <Grid Margin="15">
         <Grid.RowDefinitions>
@@ -76,7 +67,12 @@
                         <StackPanel>
                             <TextBlock Text="Подзадачи и логи времени:" FontWeight="Bold" Margin="5,0,0,5" Foreground="#57606f"/>
                             <DataGrid ItemsSource="{Binding SubTasks}" AutoGenerateColumns="False" CanUserAddRows="False" 
-                                      HeadersVisibility="None" Background="Transparent" BorderThickness="0" GridLinesVisibility="None">
+                                      HeadersVisibility="None" Background="Transparent" BorderThickness="0" GridLinesVisibility="None" IsReadOnly="True">
+                                <DataGrid.RowStyle>
+                                    <Style TargetType="DataGridRow">
+                                        <Setter Property="ToolTip" Value="{Binding FormattedUpdatedAt}"/>
+                                    </Style>
+                                </DataGrid.RowStyle>
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Binding="{Binding DisplayName}" Width="680"/>
                                     <DataGridTextColumn Binding="{Binding FormattedTime}" Width="110" IsReadOnly="True"/>

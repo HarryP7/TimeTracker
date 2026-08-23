@@ -16,6 +16,7 @@ public class SubTaskLog : INotifyPropertyChanged
     private DateOnly _date;
     private int _secondsSpent;
     private bool _isRunning;
+    private DateTime _updatedAt = DateTime.UtcNow;
 
     [Column("id")]
     public int Id
@@ -46,22 +47,23 @@ public class SubTaskLog : INotifyPropertyChanged
         set
         {
             _name = value;
+            // DisplayName зависит от Name, поэтому при изменении Name, нужно перерисовать DisplayName
             OnPropertyChanged();
             OnPropertyChanged(nameof(DisplayName));
         }
     }
 
     /// <summary>
-    /// Дата логирования (хранится только дата, для простоты фильтрации)
+    /// Дата создания (хранится только дата, для простоты фильтрации)
     /// </summary>
     [Column("created_at")]
     public DateOnly CreatedAt { get => _date; set { _date = value; OnPropertyChanged(); } }
 
     /// <summary>
-    /// Последнее обновление. Для сортировки
+    /// Обновление подзадачи. Для сортировки
     /// </summary>
     [Column("last_updated_at")]
-    public DateTime LastUpdatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime LastUpdatedAt { get => _updatedAt; set { _updatedAt = value; OnPropertyChanged(); OnPropertyChanged(nameof(FormattedUpdatedAt)); } }
 
     /// <summary>
     /// Сколько потрачено времени
@@ -106,6 +108,11 @@ public class SubTaskLog : INotifyPropertyChanged
             return string.Create(null, $"{ts.Hours:D2}:{ts.Minutes:D2}:{ts.Seconds:D2}");
         }
     }
+
+    // Для отображения при наведении (Локальное время)
+    [NotMapped]
+    public string FormattedUpdatedAt => $"Изменено: {LastUpdatedAt.ToLocalTime():HH:mm:ss}";
+
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string prop = "") =>

@@ -72,7 +72,7 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void SetupGlobalTimer()
     {
-        // Оптимизация: один таймер на всё приложение вместо таймера в каждом объекте
+        // Один таймер на всё приложение вместо таймера в каждом объекте
         _globalTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _globalTimer.Tick += async (s, e) =>
         {
@@ -106,7 +106,7 @@ public class MainViewModel : INotifyPropertyChanged
             .ToArrayAsync();
 
         // Вытаскиваем подзадачи за выбранный день
-        var allLogs = await _db.SubTaskLogs
+        var allSubTasks = await _db.SubTaskLogs
             .AsNoTracking()
             .Where(l => l.CreatedAt == dateOnly)
             .OrderByDescending(t => t.LastUpdatedAt)
@@ -114,22 +114,16 @@ public class MainViewModel : INotifyPropertyChanged
 
         Tasks.Clear();
 
-        // Вытаскиваем логи за выбранный день
-        //var logs = await _db.SubTaskLogs
-        //    .AsNoTracking()
-        //    .Where(l => l.Date == dateOnly)
-        //    .ToDictionaryAsync(l => l.TaskId, l => l.SecondsSpent);
-
         foreach (var task in allTasks)
         {
             task.SubTasks.Clear();
 
-            var taskLogs = allLogs
+            var subTasksByTask = allSubTasks
                 .Where(l => l.TaskId == task.Id)
                 .ToList();
 
             // Если логов/подзадач на этот день еще нет, создаем дефолтный лог для основной задачи
-            if (taskLogs.Count == 0)
+            if (subTasksByTask.Count == 0)
             {
                 var defaultLog = new SubTaskLog
                 {
@@ -138,20 +132,19 @@ public class MainViewModel : INotifyPropertyChanged
                     CreatedAt = dateOnly,
                     SecondsSpent = 0
                 };
-                taskLogs.Add(defaultLog);
+                subTasksByTask.Add(defaultLog);
             }
 
             // Если задача была активна, но мы сменили дату - визуально останавливаем её отображение
             //if (task == _activeSubTask && dateOnly != DateOnly.FromDateTime(DateTime.Today)) task.IsRunning = false;
 
-            foreach (var log in taskLogs)
+            foreach (var subTask in subTasksByTask)
             {
-                if (_activeSubTask != null && _activeSubTask.Id == log.Id && dateOnly == DateOnly.FromDateTime(DateTime.Today))
+                if (_activeSubTask != null && _activeSubTask.Id == subTask.Id && dateOnly == DateOnly.FromDateTime(DateTime.Today))
                 {
-                    // NOTE: Зачем?
-                    log.IsRunning = true;
+                    subTask.IsRunning = true;
                 }
-                task.SubTasks.Add(log);
+                task.SubTasks.Add(subTask);
             }
 
             task.TotalDaySeconds = task.SubTasks.Sum(s => s.SecondsSpent);
@@ -189,8 +182,9 @@ public class MainViewModel : INotifyPropertyChanged
         _db.SubTaskLogs.Add(defaultLog);
         await _db.SaveChangesAsync();
 
-        // TODO: Удалить?
+        // Добавляем подзадачу на UI
         task.SubTasks.Add(defaultLog);
+        task.TotalDaySeconds = 0;
 
         // Добавляем в начало списка
         Tasks.Insert(0, task);
@@ -208,13 +202,13 @@ public class MainViewModel : INotifyPropertyChanged
         string subTaskName = Microsoft.VisualBasic.Interaction.InputBox("Введите название подзадачи:", "Новая подзадача");
         if (string.IsNullOrWhiteSpace(subTaskName)) return;
 
-        var dateOnly = DateOnly.FromDateTime(DateTime.Today);
         var subTask = new SubTaskLog
         {
             TaskId = parentTask.Id,
             Name = subTaskName,
-            CreatedAt = dateOnly,
-            SecondsSpent = 0
+            CreatedAt = DateOnly.FromDateTime(DateTime.Today),
+            SecondsSpent = 0,
+            LastUpdatedAt = DateTime.UtcNow
         };
 
         _db.SubTaskLogs.Add(subTask);
@@ -238,6 +232,7 @@ public class MainViewModel : INotifyPropertyChanged
         if (subTask.IsRunning)
         {
             subTask.IsRunning = false;
+            subTask.LastUpdatedAt = DateTime.UtcNow;
             _activeSubTask = null;
             _globalTimer?.Stop();
             await SaveCurrentProgressAsync();
@@ -248,6 +243,7 @@ public class MainViewModel : INotifyPropertyChanged
             if (_activeSubTask != null)
             {
                 _activeSubTask.IsRunning = false;
+                _activeSubTask.LastUpdatedAt = DateTime.UtcNow;
                 await SaveCurrentProgressAsync();
             }
 
@@ -261,27 +257,43 @@ public class MainViewModel : INotifyPropertyChanged
                 await _db.SaveChangesAsync();
             }
 
-            _globalTimer?.Start();
             _activeSubTask = subTask;
             _activeSubTask.IsRunning = true;
+            _globalTimer?.Start();
 
-            // Обновляем дату изменения родительской задачи для сортировки
-            var parent = _db.Tasks.Find(subTask.TaskId);
-            if (parent != null)
+            await SortTasksAndSubtasksAsync(_activeSubTask.TaskId, _activeSubTask);
+
+            //_db.Entry(_activeSubTask).State = EntityState.Modified;
+            //await _db.SaveChangesAsync();
+        }
+    }
+    private async Task SortTasksAndSubtasksAsync(int parentId, SubTaskLog activeSubTask)
+    {
+        var parent = Tasks.FirstOrDefault(t => t.Id == parentId);
+        if (parent != null)
+        {
+            // Переносим подзадачу наверх списка внутри UI
+            parent.SubTasks.Remove(activeSubTask);
+            parent.SubTasks.Insert(0, activeSubTask);
+
+            // Обновляем дату и время изменения родительской задачи для сортировки
+            var dbParent = await _db.Tasks.FindAsync(parentId);
+            if (dbParent != null)
             {
-                parent.LastUpdatedAt = DateTime.UtcNow;
-                await _db.SaveChangesAsync();
+                dbParent.LastUpdatedAt = DateTime.UtcNow;
             }
 
-            _activeSubTask.LastUpdatedAt = DateTime.UtcNow;
-            _db.Entry(_activeSubTask).State = EntityState.Modified;
+            activeSubTask.LastUpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
+
+            // Переносим саму задачу наверх основного списка
+            Tasks.Remove(parent);
+            Tasks.Insert(0, parent);
         }
     }
 
     private async Task SaveCurrentProgressAsync()
     {
-
         if (_activeSubTask == null || _activeSubTask.Id == 0) return;
         _db.Entry(_activeSubTask).State = EntityState.Modified;
         await _db.SaveChangesAsync();
