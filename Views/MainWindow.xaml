@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         Title="Time Tracker" Height="600" Width="900"
         WindowStartupLocation="CenterScreen">
-    
+
     <Grid Margin="15">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -15,16 +15,38 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Блок выбора даты и общего времени -->
-        <Border Grid.Row="0" Background="#f8f9fa" Padding="10" CornerRadius="5" Margin="0,0,0,15">
+        <!-- Верхняя аналитическая панель -->
+        <Border Grid.Row="0" Background="#f8f9fa" Padding="12" CornerRadius="6" Margin="0,0,0,15" BorderBrush="#e9ecef" BorderThickness="1">
             <Grid>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                    <TextBlock Text="Дата просмотра:" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="Bold"/>
-                    <DatePicker SelectedDate="{Binding SelectedDate, Mode=TwoWay}" Width="150"/>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <TextBlock Text="Дата :" VerticalAlignment="Center" Margin="0,0,5,0" FontWeight="Bold"/>
+                    <DatePicker SelectedDate="{Binding SelectedDate, Mode=TwoWay}" Width="110" Margin="0,0,15,0"/>
+
+                    <TextBlock Text="Начало работы:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="#7f8c8d"/>
+                    <TextBlock Text="{Binding StartTimeFormatted}" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,15,0" Foreground="#2980b9"/>
+
+                    <TextBlock Text="Паузы:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="#7f8c8d"/>
+                    <TextBlock Text="{Binding TotalPauseFormatted}" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,15,0" Foreground="#e67e22"/>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+
+                <!-- Индикатор обеда и расчет окончания -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
+                    <CheckBox IsChecked="{Binding IsLunchIncluded, Mode=TwoWay}" Content="Был обед" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <TextBlock Text="Завершение в: " VerticalAlignment="Center" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding EstimatedEndTimeFormatted}" VerticalAlignment="Center" FontSize="15"
+                               Foreground="#27ae60" FontWeight="Black" Margin="0,0,15,0"/>
+
                     <TextBlock Text="Всего за день: " VerticalAlignment="Center" FontWeight="Bold"/>
-                    <TextBlock Text="{Binding TotalTimeFormatted}" VerticalAlignment="Center" FontSize="16" Foreground="#2c3e50" FontWeight="Black"/>
+                    <TextBlock Text="{Binding TotalTimeFormatted}" VerticalAlignment="Center" FontSize="15" Foreground="#2c3e50" FontWeight="Black"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -49,12 +71,17 @@
                 <DataGridTextColumn Header="Название задачи" Binding="{Binding Name}" Width="*"/>
                 <DataGridTextColumn Header="Всего за день" Binding="{Binding FormattedTotalTime}" Width="120" IsReadOnly="True"/>
 
-                <!-- Кнопка «+» для добавления подзадачи -->
-                <DataGridTemplateColumn Width="40">
+                <DataGridTemplateColumn Width="90">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <Button Content="＋" Command="{Binding DataContext.AddSubTaskCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
-                                    CommandParameter="{Binding}" Margin="2" Background="#3498db" Foreground="White" FontWeight="Bold" BorderThickness="0"/>
+                            <StackPanel Orientation="Horizontal">
+                                <!-- Кнопка добавления подзадачи -->
+                                <Button Content="＋" Command="{Binding DataContext.AddSubTaskCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}" Width="35" Margin="2" Background="#3498db" Foreground="White" FontWeight="Bold" BorderThickness="0"/>
+                                <!-- Удаление главной задачи -->
+                                <Button Content="❌" Command="{Binding DataContext.DeleteTaskCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}" Width="35" Margin="2" Background="#e74c3c" Foreground="White" BorderThickness="0"/>
+                            </StackPanel>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
@@ -65,7 +92,7 @@
                 <DataTemplate>
                     <Border Background="#f1f2f6" Padding="10" BorderBrush="#dcdde1" BorderThickness="0,1,0,1">
                         <StackPanel>
-                            <TextBlock Text="Подзадачи и логи времени:" FontWeight="Bold" Margin="5,0,0,5" Foreground="#57606f"/>
+                            <!--<TextBlock Text="Подзадачи:" FontWeight="Bold" Margin="5,0,0,5" Foreground="#57606f"/>-->
                             <DataGrid ItemsSource="{Binding SubTasks}" AutoGenerateColumns="False" CanUserAddRows="False" 
                                       HeadersVisibility="None" Background="Transparent" BorderThickness="0" GridLinesVisibility="None" IsReadOnly="True">
                                 <DataGrid.RowStyle>
@@ -74,14 +101,43 @@
                                     </Style>
                                 </DataGrid.RowStyle>
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Binding="{Binding DisplayName}" Width="680"/>
-                                    <DataGridTextColumn Binding="{Binding FormattedTime}" Width="110" IsReadOnly="True"/>
-                                    <DataGridTemplateColumn Width="50">
+                                    <DataGridTextColumn Binding="{Binding DisplayName}" Width="680" />
+                                    <DataGridTextColumn Binding="{Binding FormattedTime}" Width="110" />
+                                    <DataGridTemplateColumn Width="150">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <Button Content="{Binding ButtonText}" 
-                                                        Command="{Binding DataContext.ToggleTimerCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                                        CommandParameter="{Binding}" Margin="2" Padding="10,2"/>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <!-- Кнопка «Плей» для запуска таймера выполнения родзадачи -->
+                                                    <Button Grid.Column="0" Content="{Binding ButtonText}"
+                                                        Command="{Binding DataContext.ToggleTimerCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}" Margin="2" Padding="8,2"/>
+
+                                                    <!-- Кнопка «Карандаш» для вызова Попапа корректировки -->
+                                                    <ToggleButton x:Name="EditTimeBtn" Grid.Column="1" Content="✏️" Margin="2" Padding="4,2"
+                                                              Background="#f1c40f" BorderThickness="0"/>
+
+                                                    <!-- Удаление отдельной подзадачи -->
+                                                    <Button Grid.Column="2" Content="❌"
+                                                        Command="{Binding DataContext.DeleteSubTaskCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}" Margin="2" Padding="4,2" Background="#e74c3c" Foreground="White" BorderThickness="0"/>
+
+                                                    <!-- POPUP коррекции времени -->
+                                                    <Popup IsOpen="{Binding IsChecked, ElementName=EditTimeBtn, Mode=TwoWay}"
+                                                       StaysOpen="False" Placement="Left" AllowsTransparency="True">
+                                                        <Border Background="White" CornerRadius="5" Padding="10" BorderBrush="#bdc3c7" BorderThickness="1">
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <TextBox Text="{Binding DataContext.AdjustHours, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
+                                                                     Width="25" TextAlignment="Center" Margin="2"/>
+                                                                <TextBlock Text="ч" VerticalAlignment="Center"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </Popup>
+                                                </Grid>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>

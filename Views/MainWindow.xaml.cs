@@ -24,4 +24,10 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// Нужен для корректной обработки события изменения состояния чекбокса знака плюс/минус в XAML
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private void CheckBox_Unchecked(object sender, RoutedEventArgs e) { }
 }
