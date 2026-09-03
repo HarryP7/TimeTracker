@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Windows;
 using TimeTracker.Data;
+using TimeTracker.Data.Interfaces;
+using TimeTracker.Data.Repositories;
 using TimeTracker.ViewModels;
 using TimeTracker.Views;
 
@@ -30,15 +32,19 @@ public partial class App : Application
                 services.AddDbContext<AppDbContext>(options =>
                     options.UseNpgsql(connectionString));
 
-                // Регистрируем главное окно (если оно использует DI)
-                //services.AddSingleton<MainWindow>();
-
                 // Регистрируем ViewModels и Windows
                 services.AddTransient<MainViewModel>();
+                // Регистрируем главное окно
                 services.AddSingleton<MainWindow>(sp => new MainWindow
                 {
                     DataContext = sp.GetRequiredService<MainViewModel>()
                 });
+
+                // Регистрация репозиториев
+                services.AddScoped<ITaskRepository, TaskRepository>();
+                services.AddScoped<ISubTaskRepository, SubTaskRepository>();
+                services.AddScoped<IGeneralInfoTimeDayRepository, GeneralInfoTimeDayRepository>();
+
             })
             .Build();
     }

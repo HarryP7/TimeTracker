@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -6,13 +7,21 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
 using TimeTracker.Data;
+using TimeTracker.Data.Interfaces;
 using TimeTracker.Models;
+using TimeTracker.Services;
 
 namespace TimeTracker.ViewModels;
 
 public class MainViewModel : INotifyPropertyChanged
 {
+    // TODO: удалить
     private readonly AppDbContext _db;
+
+    // Репозитории
+    private readonly ITaskRepository _taskRpository;
+    private readonly ISubTaskRepository _subTaskRepository;
+    private readonly IGeneralInfoTimeDayRepository _generalInfoTimeDayRepository;
 
     /// <summary>
     /// Глобальный таймер учета времени работы
@@ -34,6 +43,11 @@ public class MainViewModel : INotifyPropertyChanged
     /// Время начала паузы
     /// </summary>
     private DateTime? _pauseStartedAt;
+
+    /// <summary>
+    /// Токен отмены
+    /// </summary>
+    private CancellationTokenSource _cts = new();
 
     private string _newTaskName = string.Empty;
     private DateTime _selectedDate = DateTime.Today;
@@ -57,7 +71,7 @@ public class MainViewModel : INotifyPropertyChanged
     /// <summary>
     /// Флаг: был ли обед
     /// </summary>
-    private bool _isLunchIncluded = true;
+    private bool _isLunchIncluded = false;
 
     // Свойства для модального изменения времени
     private string _adjustHours = "0";
@@ -68,10 +82,15 @@ public class MainViewModel : INotifyPropertyChanged
     /// </summary>
     private bool _isAdjustPositive = true;
 
+    /// <summary>
+    /// Текущее инфо по общему времени
+    /// </summary>
+    private GeneralInfoTimeDay? _currentDayInfo;
+
     public ObservableCollection<TaskModel> Tasks { get; } = new();
 
     public string NewTaskName { get => _newTaskName; set { _newTaskName = value; OnPropertyChanged(); } }
-    public DateTime SelectedDate { get => _selectedDate; set { _selectedDate = value; OnPropertyChanged(); _ = LoadTasksAndLogsAsync(); } }
+    public DateTime SelectedDate { get => _selectedDate; set { _selectedDate = value; OnPropertyChanged(); CancelAndReload(); } }
     public string TotalTimeFormatted { get => _totalTimeFormatted; set { _totalTimeFormatted = value; OnPropertyChanged(); } }
 
     /// <summary>
@@ -89,7 +108,7 @@ public class MainViewModel : INotifyPropertyChanged
     /// <summary>
     /// Флаг для отображения: Был ли обед
     /// </summary>
-    public bool IsLunchIncluded { get => _isLunchIncluded; set { _isLunchIncluded = value; OnPropertyChanged(); RecalculateWorkDayPlanAsync(); } }
+    public bool IsLunchIncluded { get => _isLunchIncluded; set { _isLunchIncluded = value; OnPropertyChanged(); RecalculateWorkDayPlan(); } }
 
     // Отображение корректировки времени
     public string AdjustHours { get => _adjustHours; set { _adjustHours = value; OnPropertyChanged(); } }
@@ -106,28 +125,32 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand DeleteSubTaskCommand { get; }
     public ICommand ApplyTimeAdjustmentCommand { get; }
 
-    public MainViewModel(AppDbContext db)
+    public MainViewModel(AppDbContext db,
+        ITaskRepository taskRpository,
+        ISubTaskRepository subTaskRepository,
+        IGeneralInfoTimeDayRepository generalInfoTimeDayRepository)
     {
         _db = db;
-        AddCommand = new RelayCommand<object>(async _ => await AddTaskAsync());
-        ToggleTimerCommand = new RelayCommand<SubTaskLog>(async (subTask) => await ToggleTimerAsync(subTask));
-        AddSubTaskCommand = new RelayCommand<TaskModel>(async (task) => await AddSubTaskAsync(task));
+        _taskRpository = taskRpository;
+        _subTaskRepository = subTaskRepository;
+        _generalInfoTimeDayRepository = generalInfoTimeDayRepository;
 
-        DeleteTaskCommand = new RelayCommand<TaskModel>(async task => await DeleteTaskAsync(task));
-        DeleteSubTaskCommand = new RelayCommand<SubTaskLog>(async subTask => await DeleteSubTaskAsync(subTask));
-        ApplyTimeAdjustmentCommand = new RelayCommand<SubTaskLog>(async subTask => await ApplyTimeAdjustmentAsync(subTask));
+        AddCommand = new RelayCommand<object>(async _ => await AddTaskAsync(_cts.Token));
+        ToggleTimerCommand = new RelayCommand<SubTaskLog>(async (subTask) => await ToggleTimerAsync(subTask, _cts.Token));
+        AddSubTaskCommand = new RelayCommand<TaskModel>(async (task) => await AddSubTaskAsync(task, _cts.Token));
 
-        //SetupTimers();
+        DeleteTaskCommand = new RelayCommand<TaskModel>(async task => await DeleteTaskAsync(task, _cts.Token));
+        DeleteSubTaskCommand = new RelayCommand<SubTaskLog>(async subTask => await DeleteSubTaskAsync(subTask, _cts.Token));
+        ApplyTimeAdjustmentCommand = new RelayCommand<SubTaskLog>(async subTask => await ApplyTimeAdjustmentAsync(subTask, _cts.Token));
     }
 
     public async Task Initialize()
     {
-        await LoadTasksAndLogsAsync();
-        SetupTimers();
+        await LoadTasksAndLogsAsync(_cts.Token);
+        SetupGlobalTimer();
     }
 
-    // TODO: Вернуть название SetupGlobalTimer
-    private void SetupTimers()
+    private void SetupGlobalTimer()
     {
         // Один таймер на всё приложение вместо таймера в каждом объекте
         _globalTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -150,36 +173,26 @@ public class MainViewModel : INotifyPropertyChanged
                 }
             }
         };
-
-        // Таймер для обновления прогноза окончания дня каждую секунду
-        //_uiRefreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-        //_uiRefreshTimer.Tick += (s, e) => RecalculateWorkDayPlanAsync();
-        //_uiRefreshTimer.Start();
+    }
+    private void CancelAndReload()
+    {
+        _cts.Cancel();
+        _cts = new CancellationTokenSource();
+        _ = LoadTasksAndLogsAsync(_cts.Token);
     }
 
     /// <summary>
     /// Загружаем задачи и подзадачи на выбранную в UI дату
     /// </summary>
-    private async Task LoadTasksAndLogsAsync()
+    private async Task LoadTasksAndLogsAsync(CancellationToken ct)
     {
-        // Очищаем трекер EF перед каждой загрузкой данных
-        _db.ChangeTracker.Clear();
-
         // Выбранная дата в UI
         var selectedDateUi = DateOnly.FromDateTime(SelectedDate);
 
-        // Сортировка: по убыванию даты и времени последнего выполнения
-        var allTasks = await _db.Tasks
-            .AsNoTracking()
-            .OrderByDescending(t => t.LastUpdatedAt)
-            .ToArrayAsync();
+        var allTasks = await _taskRpository.GetAllTasksAsync(ct);
 
         // Вытаскиваем подзадачи за выбранный день
-        var allSubTasks = await _db.SubTaskLogs
-            .AsNoTracking()
-            .Where(l => l.CreatedAt == selectedDateUi)
-            .OrderByDescending(t => t.LastUpdatedAt)
-            .ToArrayAsync();
+        var allSubTasks = await _subTaskRepository.GetSubTaskLogsByDateAsync(selectedDateUi, ct);
 
         Tasks.Clear();
 
@@ -189,19 +202,22 @@ public class MainViewModel : INotifyPropertyChanged
 
             var subTasksByTask = allSubTasks
                 .Where(l => l.TaskId == task.Id)
-                .ToList();
+                .ToArray();
 
             // Если логов/подзадач на этот день еще нет, создаем дефолтный лог для основной задачи
-            if (subTasksByTask.Count == 0)
+            if (subTasksByTask.Length == 0)
             {
-                var defaultLog = new SubTaskLog
+                var defaultSubTask = new SubTaskLog
                 {
                     TaskId = task.Id,
                     Name = null,
                     CreatedAt = selectedDateUi,
-                    SecondsSpent = 0
+                    SecondsSpent = 0,
+                    LastUpdatedAt = DateTime.UtcNow
                 };
-                subTasksByTask.Add(defaultLog);
+                await _subTaskRepository.AddSubTaskAsync(defaultSubTask, ct);
+
+                subTasksByTask = [defaultSubTask];
             }
 
             // Если задача была активна, но мы сменили дату - визуально останавливаем её отображение
@@ -222,24 +238,23 @@ public class MainViewModel : INotifyPropertyChanged
 
         CalculateTotalTime();
 
-        await LoadDayLogsAsync();
+        await LoadDayLogsAsync(ct);
     }
 
     /// <summary>
     /// Загружаем общую информацию времени по дню
     /// </summary>
-    private async Task LoadDayLogsAsync()
+    private async Task LoadDayLogsAsync(CancellationToken ct)
     {
-        var dateOnly = DateOnly.FromDateTime(SelectedDate);
-        var dayLog = await _db.GeneralInfoTimeDays
-            .AsNoTracking()
-            .Where(x => x.Date == dateOnly)
-            .FirstOrDefaultAsync();
+        var selectedDateUi = DateOnly.FromDateTime(SelectedDate);
 
-        if (dayLog != null)
+        _currentDayInfo = await _generalInfoTimeDayRepository
+            .GetGeneralInfoTimeDayAsync(selectedDateUi, ct);
+
+        if (_currentDayInfo != null)
         {
-            StartTimeFormatted = dayLog.WorkStartTime?.ToLocalTime().ToString(@"HH\:mm\:ss") ?? "--:--:--";
-            var pauseTs = TimeSpan.FromSeconds(dayLog.TotalPauseSeconds);
+            StartTimeFormatted = _currentDayInfo.WorkStartTime?.ToLocalTime().ToString(@"HH\:mm\:ss") ?? "--:--:--";
+            var pauseTs = TimeSpan.FromSeconds(_currentDayInfo.TotalPauseSeconds);
             TotalPauseFormatted = string.Create(null, $"{pauseTs.Hours:D2}:{pauseTs.Minutes:D2}:{pauseTs.Seconds:D2}");
         }
         else
@@ -248,13 +263,13 @@ public class MainViewModel : INotifyPropertyChanged
             TotalPauseFormatted = "00:00:00";
         }
 
-        await RecalculateWorkDayPlanAsync();
+        RecalculateWorkDayPlan();
     }
 
     /// <summary>
     /// Добавление основной задачи
     /// </summary>
-    private async Task AddTaskAsync()
+    private async Task AddTaskAsync(CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(NewTaskName)) return;
 
@@ -265,8 +280,7 @@ public class MainViewModel : INotifyPropertyChanged
             LastUpdatedAt = DateTime.UtcNow
         };
 
-        _db.Tasks.Add(task);
-        await _db.SaveChangesAsync();
+        await _taskRpository.AddTaskAsync(task, ct);
 
         // Сразу создаем дефолтную запись времени на сегодня
         var defaultSubTaskLog = new SubTaskLog
@@ -274,10 +288,10 @@ public class MainViewModel : INotifyPropertyChanged
             TaskId = task.Id,
             Name = null,
             CreatedAt = DateOnly.FromDateTime(DateTime.Today),
-            SecondsSpent = 0
+            SecondsSpent = 0,
+            LastUpdatedAt = DateTime.UtcNow
         };
-        _db.SubTaskLogs.Add(defaultSubTaskLog);
-        await _db.SaveChangesAsync();
+        await _subTaskRepository.AddSubTaskAsync(defaultSubTaskLog, ct);
 
         // Добавляем подзадачу на UI
         task.SubTasks.Add(defaultSubTaskLog);
@@ -291,7 +305,7 @@ public class MainViewModel : INotifyPropertyChanged
     /// <summary>
     /// Добавление подзадачи
     /// </summary>
-    private async Task AddSubTaskAsync(TaskModel? parentTask)
+    private async Task AddSubTaskAsync(TaskModel? parentTask, CancellationToken ct)
     {
         if (parentTask == null) return;
 
@@ -308,8 +322,7 @@ public class MainViewModel : INotifyPropertyChanged
             LastUpdatedAt = DateTime.UtcNow
         };
 
-        _db.SubTaskLogs.Add(subTask);
-        await _db.SaveChangesAsync();
+        await _subTaskRepository.AddSubTaskAsync(subTask, ct);
 
         // Если мы сейчас смотрим сегодняшний день — сразу добавляем в интерфейс
         if (SelectedDate.Date == DateTime.Today)
@@ -322,12 +335,12 @@ public class MainViewModel : INotifyPropertyChanged
     /// <summary>
     /// Включение/выключение таймера
     /// </summary>
-    private async Task ToggleTimerAsync(SubTaskLog? subTask)
+    private async Task ToggleTimerAsync(SubTaskLog? subTask, CancellationToken ct)
     {
         if (subTask == null) return;
 
         // Очищаем трекер перед изменениями
-        _db.ChangeTracker.Clear();
+        //_db.ChangeTracker.Clear();
 
         if (subTask.IsRunning)
         {
@@ -339,27 +352,49 @@ public class MainViewModel : INotifyPropertyChanged
             // TODO: Вернуть, если вариант ниже не будет работать
             //_db.Entry(subTask).State = EntityState.Modified;
             //await _db.SaveChangesAsync();
-            await SaveCurrentProgressAsync(subTask);
+            //await SaveCurrentProgressAsync(subTask);
+            await _subTaskRepository.UpdateSubTaskLogAsync(subTask, ct);
 
             // Фиксируем старт паузы
             _pauseStartedAt = DateTime.UtcNow;
 
-            await SortSubtasksOnlyAsync(subTask.TaskId, subTask);
+            await SortSubtasksOnlyAsync(subTask.TaskId, subTask, ct);
         }
         else
         {
-            var dateOnly = DateOnly.FromDateTime(DateTime.Today);
+            var today = DateOnly.FromDateTime(DateTime.Today);
+
+            if (_currentDayInfo == null)
+            {
+                _currentDayInfo = new GeneralInfoTimeDay
+                {
+                    Date = today,
+                    WorkStartTime = DateTime.UtcNow,
+                    TotalPauseSeconds = 0
+                };
+            }
+            else if (_currentDayInfo.WorkStartTime == null)
+            {
+                _currentDayInfo.WorkStartTime = DateTime.UtcNow;
+            }
+            if (_pauseStartedAt != null)
+            {
+                var pauseDuration = (int)(DateTime.UtcNow - _pauseStartedAt.Value).TotalSeconds;
+                _currentDayInfo.TotalPauseSeconds += pauseDuration;
+                _pauseStartedAt = null;
+            }
+            await _generalInfoTimeDayRepository.AddOrUpdateGeneralInfoAsync(_currentDayInfo, ct);
 
             // Фиксируем время первого старта за день
-            var dayLog = await _db.GeneralInfoTimeDays
-                .Where(x => x.Date == dateOnly)
-                .FirstOrDefaultAsync();
+            /*var dayLog = await _db.GeneralInfoTimeDays
+                .Where(x => x.Date == today)
+                .FirstOrDefaultAsync(ct);
 
             if (dayLog == null)
             {
                 dayLog = new GeneralInfoTimeDay
                 {
-                    Date = dateOnly,
+                    Date = today,
                     WorkStartTime = DateTime.UtcNow,
                     TotalPauseSeconds = 0
                 };
@@ -381,44 +416,44 @@ public class MainViewModel : INotifyPropertyChanged
 
                 await _db.SaveChangesAsync();
                 _pauseStartedAt = null;
-            }
+            }*/
 
             // Останавливаем любую другую работающую подзадачу
             if (_activeSubTask != null)
             {
                 _activeSubTask.IsRunning = false;
                 _activeSubTask.LastUpdatedAt = DateTime.UtcNow;
-                await SaveCurrentProgressAsync();
+                //await SaveCurrentProgressAsync();
+                await _subTaskRepository.UpdateSubTaskLogAsync(_activeSubTask, ct);
 
-                await SortSubtasksOnlyAsync(_activeSubTask.TaskId, _activeSubTask);
+                await SortSubtasksOnlyAsync(_activeSubTask.TaskId, _activeSubTask, ct);
             }
 
             // Переключаем на сегодняшний день, если запуск идет из прошлого
             if (SelectedDate != DateTime.Today) SelectedDate = DateTime.Today;
 
             // Если у этой подзадачи еще нет Id в БД (виртуальная дефолтная запись), сохраняем её
-            if (subTask.Id == 0)
+            /*if (subTask.Id == 0)
             {
                 _db.SubTaskLogs.Add(subTask);
                 await _db.SaveChangesAsync();
-            }
+            }*/
 
+            // Изменяем новую запущенную задачу
             _activeSubTask = subTask;
             _activeSubTask.IsRunning = true;
+            _activeSubTask.LastUpdatedAt = DateTime.UtcNow;
+
+            await _subTaskRepository.UpdateSubTaskLogAsync(_activeSubTask, ct);
+
             _globalTimer?.Start();
-
-            // Фикс бага закрытия позадач
-            //await SortTasksAndSubtasksAsync(_activeSubTask.TaskId, _activeSubTask);
-
-            //_db.Entry(_activeSubTask).State = EntityState.Modified;
-            //await _db.SaveChangesAsync();
         }
 
         // TODO: точно нужно здесь?
-        await LoadDayLogsAsync();
+        await LoadDayLogsAsync(ct);
 
         // Поменять на это при необходимости
-        //await RecalculateWorkDayPlanAsync();
+        //await RecalculateWorkDayPlan();
     }
 
     /// <summary>
@@ -426,7 +461,7 @@ public class MainViewModel : INotifyPropertyChanged
     /// </summary>
     /// <param name="parentId"></param>
     /// <param name="activeSubTask"></param>
-    private async Task SortSubtasksOnlyAsync(int parentId, SubTaskLog activeSubTask)
+    private async Task SortSubtasksOnlyAsync(int parentId, SubTaskLog activeSubTask, CancellationToken ct)
     {
         var parent = Tasks.FirstOrDefault(t => t.Id == parentId);
 
@@ -441,7 +476,7 @@ public class MainViewModel : INotifyPropertyChanged
             // Тихо обновляем дату апдейта родителя в БД
             var dbParent = await _db.Tasks
                 .Where(t => t.Id == parentId)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
 
             if (dbParent != null)
             {
@@ -451,55 +486,23 @@ public class MainViewModel : INotifyPropertyChanged
             //activeSubTask.LastUpdatedAt = DateTime.UtcNow;
             //await _db.SaveChangesAsync();
 
-            await SaveCurrentProgressAsync(activeSubTask);
+            //await SaveCurrentProgressAsync(activeSubTask, ct);
+            await _subTaskRepository.UpdateSubTaskLogAsync(activeSubTask, ct);
         }
     }
-
-    // TODO: Удалить
-    /*private async Task SortTasksAndSubtasksAsync(int parentId, SubTaskLog activeSubTask)
-    {
-        var parent = Tasks.FirstOrDefault(t => t.Id == parentId);
-        if (parent != null)
-        {
-            // Переносим подзадачу наверх списка внутри UI
-            parent.SubTasks.Remove(activeSubTask);
-            parent.SubTasks.Insert(0, activeSubTask);
-
-            // Обновляем дату и время изменения родительской задачи для сортировки
-            var dbParent = await _db.Tasks.FindAsync(parentId);
-            if (dbParent != null)
-            {
-                dbParent.LastUpdatedAt = DateTime.UtcNow;
-            }
-
-            activeSubTask.LastUpdatedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync();
-
-            // Переносим саму задачу наверх основного списка
-            Tasks.Remove(parent);
-            Tasks.Insert(0, parent);
-        }
-    }*/
 
     /// <summary>
     /// Расчет прогнозного времени завершения рабочего дня
     /// </summary>
-    private async Task RecalculateWorkDayPlanAsync()
+    private void RecalculateWorkDayPlan()
     {
-        var selectedDateUi = DateOnly.FromDateTime(SelectedDate);
-
-        var dayLog = await _db.GeneralInfoTimeDays
-            .Where(x => x.Date == selectedDateUi)
-            .FirstOrDefaultAsync();
-
-        if (StartTimeFormatted == "--:--:--" || dayLog is null || dayLog.WorkStartTime == null)
+        if (_currentDayInfo == null || _currentDayInfo.WorkStartTime == null)
         {
             EstimatedEndTimeFormatted = "--:--:--";
             return;
         }
 
-        var startLocal = dayLog.WorkStartTime.Value.ToLocalTime();
-        var totalPauseSec = dayLog.TotalPauseSeconds;
+        var totalPauseSec = _currentDayInfo.TotalPauseSeconds;
 
         // Если прямо сейчас идет пауза (таймер выключен), учитываем текущий простой в реальном времени
         if (_activeSubTask is null && _pauseStartedAt != null)
@@ -507,30 +510,11 @@ public class MainViewModel : INotifyPropertyChanged
             totalPauseSec += (int)(DateTime.UtcNow - _pauseStartedAt.Value).TotalSeconds;
         }
 
+        var estimatedEnd = WorkTimeCalculator.CalculateEstimatedEndTime(_currentDayInfo.WorkStartTime.Value, totalPauseSec, IsLunchIncluded);
+
+        EstimatedEndTimeFormatted = estimatedEnd.ToString(@"HH:mm:ss");
+
         var pauseTs = TimeSpan.FromSeconds(totalPauseSec);
-
-        // Рассчет: ко времени начала работы добавляем 9 часов + общее время пауз.
-        var rawResult = startLocal + TimeSpan.FromHours(9) + pauseTs;
-
-        // TODO: Удалить
-        // Метод расчета: "Из текущего времени вычитаем время начала, результат вычитаем из 9 и прибавляем к текущему времени"
-        //var now = DateTime.Now;
-        //var timeWorkedSoFar = now - startLocal;
-        //var rawResult = now + (TimeSpan.FromHours(9) - timeWorkedSoFar);
-
-        // Корректировка на паузу более 1 часа после 4 часов работы:
-        //if (timeWorkedSoFar.TotalHours >= 4 && totalPauseSec > 3600)
-        //{
-        //    rawResult = rawResult.AddHours(-1);
-        //}
-
-        // Переключатель "Был ли обед" (Если включен — вычитаем 1 час из итогового времени нахождения на работе)
-        if (IsLunchIncluded)
-        {
-            rawResult = rawResult.AddHours(-1);
-        }
-
-        EstimatedEndTimeFormatted = rawResult.ToString(@"HH:mm:ss");
         TotalPauseFormatted = string.Create(null, $"{pauseTs.Hours:D2}:{pauseTs.Minutes:D2}:{pauseTs.Seconds:D2}");
     }
 
@@ -538,9 +522,10 @@ public class MainViewModel : INotifyPropertyChanged
     /// Применение ручной корректировки времени через Попап
     /// </summary>
     /// <param name="subTask"></param>
-    private async Task ApplyTimeAdjustmentAsync(SubTaskLog? subTask)
+    private async Task ApplyTimeAdjustmentAsync(SubTaskLog? subTask, CancellationToken ct)
     {
         if (subTask == null) return;
+
         if (!int.TryParse(AdjustHours, out int h) || !int.TryParse(AdjustMinutes, out int m) || !int.TryParse(AdjustSeconds, out int s))
         {
             MessageBox.Show("Введите корректные числовые значения!");
@@ -549,9 +534,13 @@ public class MainViewModel : INotifyPropertyChanged
 
         int totalAdjustmentSeconds = (h * 3600) + (m * 60) + s;
         if (!IsAdjustPositive) totalAdjustmentSeconds *= -1;
-        _db.ChangeTracker.Clear();
+        //_db.ChangeTracker.Clear();
 
-        if (subTask.Id == 0)
+        subTask.SecondsSpent = Math.Max(0, subTask.SecondsSpent + totalAdjustmentSeconds);
+        subTask.LastUpdatedAt = DateTime.UtcNow;
+        await _subTaskRepository.UpdateSubTaskLogAsync(subTask, ct);
+
+        /*if (subTask.Id == 0)
         {
             subTask.SecondsSpent = Math.Max(0, subTask.SecondsSpent + totalAdjustmentSeconds);
             _db.SubTaskLogs.Add(subTask);
@@ -570,7 +559,7 @@ public class MainViewModel : INotifyPropertyChanged
                 subTask.LastUpdatedAt = dbSubTask.LastUpdatedAt;
             }
         }
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync();*/
 
         var parent = Tasks.FirstOrDefault(t => t.Id == subTask.TaskId);
         if (parent != null)
@@ -581,17 +570,19 @@ public class MainViewModel : INotifyPropertyChanged
         CalculateTotalTime();
 
         // Сбрасываем поля формы
-        AdjustHours = "0"; 
-        AdjustMinutes = "0"; 
+        AdjustHours = "0";
+        AdjustMinutes = "0";
         AdjustSeconds = "0";
         MessageBox.Show("Время успешно скорректировано!");
+
+        RecalculateWorkDayPlan();
     }
 
     /// <summary>
     /// Удаление родительской задачи вместе с подзадачами
     /// </summary>
     /// <param name="task"></param>
-    private async Task DeleteTaskAsync(TaskModel? task)
+    private async Task DeleteTaskAsync(TaskModel? task, CancellationToken ct)
     {
         if (task == null) return;
 
@@ -602,31 +593,18 @@ public class MainViewModel : INotifyPropertyChanged
 
         if (result != MessageBoxResult.Yes) return;
 
-        _db.ChangeTracker.Clear();
+        await _taskRpository.DeleteTaskCascadingAsync(task.Id, ct);
 
-        // Каскадно удаляем из БД
-        var dbTask = await _db.Tasks
-            .Where(t => t.Id == task.Id)
-            .FirstOrDefaultAsync();
-
-        if (dbTask != null)
-        {
-            var subTasksQuery = _db.SubTaskLogs.Where(l => l.TaskId == task.Id);
-
-            _db.SubTaskLogs.RemoveRange(subTasksQuery);
-            _db.Tasks.Remove(dbTask);
-
-            await _db.SaveChangesAsync();
-        }
         Tasks.Remove(task);
         CalculateTotalTime();
+        RecalculateWorkDayPlan();
     }
 
     /// <summary>
     /// Удаление конкретной подзадачи
     /// </summary>
     /// <param name="subTask"></param>
-    private async Task DeleteSubTaskAsync(SubTaskLog? subTask)
+    private async Task DeleteSubTaskAsync(SubTaskLog? subTask, CancellationToken ct)
     {
         if (subTask == null) return;
 
@@ -637,20 +615,8 @@ public class MainViewModel : INotifyPropertyChanged
 
         if (result != MessageBoxResult.Yes) return;
 
-        _db.ChangeTracker.Clear();
+        await _subTaskRepository.DeleteSubTaskLogAsync(subTask.Id, ct);
 
-        if (subTask.Id != 0)
-        {
-            var dbSubTask = await _db.SubTaskLogs
-                .Where(t => t.Id == subTask.Id)
-                .FirstOrDefaultAsync();
-
-            if (dbSubTask != null)
-            {
-                _db.SubTaskLogs.Remove(dbSubTask);
-                await _db.SaveChangesAsync();
-            }
-        }
         var parent = Tasks.FirstOrDefault(t => t.Id == subTask.TaskId);
         if (parent != null)
         {
@@ -658,6 +624,7 @@ public class MainViewModel : INotifyPropertyChanged
             parent.TotalDaySeconds = parent.SubTasks.Sum(s => s.SecondsSpent);
         }
         CalculateTotalTime();
+        RecalculateWorkDayPlan();
     }
 
     private async Task SaveCurrentProgressAsync(SubTaskLog? activeSubTask = null)
@@ -679,6 +646,7 @@ public class MainViewModel : INotifyPropertyChanged
     public async Task CloseConnection()
     {
         _globalTimer?.Stop();
+        _cts.Cancel();
         await SaveCurrentProgressAsync();
         _db.Dispose();
     }

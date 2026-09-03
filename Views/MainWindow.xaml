@@ -101,14 +101,14 @@
                                     </Style>
                                 </DataGrid.RowStyle>
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Binding="{Binding DisplayName}" Width="680" />
-                                    <DataGridTextColumn Binding="{Binding FormattedTime}" Width="110" />
+                                    <DataGridTextColumn Binding="{Binding DisplayName}" Width="640" />
+                                    <DataGridTextColumn Binding="{Binding FormattedTime}" Width="90" />
                                     <DataGridTemplateColumn Width="150">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="50"/>
                                                         <ColumnDefinition Width="Auto"/>
                                                         <ColumnDefinition Width="Auto"/>
                                                     </Grid.ColumnDefinitions>

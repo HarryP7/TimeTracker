@@ -13,32 +13,16 @@ public class SubTaskLog : INotifyPropertyChanged
     private int _id;
     private int _taskId;
     private string? _name; // Имя подзадачи (null, если это просто лог времени самой задачи)
-    private DateOnly _date;
+    private DateOnly _createdAt;
     private int _secondsSpent;
     private bool _isRunning;
-    private DateTime _updatedAt = DateTime.UtcNow;
+    private DateTime _lastUpdatedAt = DateTime.UtcNow;
 
     [Column("id")]
-    public int Id
-    {
-        get => _id;
-        set
-        {
-            _id = value;
-            OnPropertyChanged();
-        }
-    }
+    public int Id { get => _id; set { _id = value; OnPropertyChanged(); } }
 
     [Column("task_id")]
-    public int TaskId
-    {
-        get => _taskId;
-        set
-        {
-            _taskId = value;
-            OnPropertyChanged();
-        }
-    }
+    public int TaskId { get => _taskId; set { _taskId = value; OnPropertyChanged(); } }
 
     [Column("name")]
     public string? Name
@@ -57,13 +41,22 @@ public class SubTaskLog : INotifyPropertyChanged
     /// Дата создания (хранится только дата, для простоты фильтрации)
     /// </summary>
     [Column("created_at")]
-    public DateOnly CreatedAt { get => _date; set { _date = value; OnPropertyChanged(); } }
+    public DateOnly CreatedAt { get => _createdAt; set { _createdAt = value; OnPropertyChanged(); } }
 
     /// <summary>
     /// Обновление подзадачи. Для сортировки
     /// </summary>
     [Column("last_updated_at")]
-    public DateTime LastUpdatedAt { get => _updatedAt; set { _updatedAt = value; OnPropertyChanged(); OnPropertyChanged(nameof(FormattedUpdatedAt)); } }
+    public DateTime LastUpdatedAt
+    {
+        get => _lastUpdatedAt;
+        set
+        {
+            _lastUpdatedAt = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(FormattedUpdatedAt));
+        }
+    }
 
     /// <summary>
     /// Сколько потрачено времени
@@ -97,7 +90,7 @@ public class SubTaskLog : INotifyPropertyChanged
     }
 
     [NotMapped]
-    public string ButtonText => IsRunning ? "⏸" : "▶";
+    public string ButtonText => IsRunning ? "&#9208;" : "▶"; //⏸
 
     [NotMapped]
     public string FormattedTime
