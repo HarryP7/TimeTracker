@@ -15,7 +15,7 @@ public class TaskRepository(AppDbContext db) : ITaskRepository
 
     public async Task AddTaskAsync(TaskModel task, CancellationToken ct)
     {
-        //db.ChangeTracker.Clear();
+        db.ChangeTracker.Clear();
         db.Tasks.Add(task);
         await db.SaveChangesAsync(ct);
     }

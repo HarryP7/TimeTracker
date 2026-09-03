@@ -294,7 +294,7 @@ public class MainViewModel : INotifyPropertyChanged
         await _subTaskRepository.AddSubTaskAsync(defaultSubTaskLog, ct);
 
         // Добавляем подзадачу на UI
-        task.SubTasks.Add(defaultSubTaskLog);
+        //task.SubTasks.Add(defaultSubTaskLog);
         task.TotalDaySeconds = 0;
 
         // Добавляем в начало списка

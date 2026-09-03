@@ -90,7 +90,7 @@ public class SubTaskLog : INotifyPropertyChanged
     }
 
     [NotMapped]
-    public string ButtonText => IsRunning ? "&#9208;" : "▶"; //⏸
+    public string ButtonText => IsRunning ? "⏸" : "▶";
 
     [NotMapped]
     public string FormattedTime

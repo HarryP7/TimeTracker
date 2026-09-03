@@ -14,7 +14,7 @@ namespace TimeTracker.Data.Repositories
 
         public async Task AddOrUpdateGeneralInfoAsync(GeneralInfoTimeDay dayInfo, CancellationToken ct)
         {
-            //db.ChangeTracker.Clear();
+            db.ChangeTracker.Clear();
             var exists = await db.GeneralInfoTimeDays
                 .AnyAsync(d => d.Date == dayInfo.Date, ct);
 
