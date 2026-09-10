@@ -28,12 +28,6 @@ public class MainViewModel : INotifyPropertyChanged
     /// </summary>
     private DispatcherTimer? _globalTimer;
 
-    // TODO: Переименовать на _estimatedEndWorkTimeTimer. Или удалить.
-    /// <summary>
-    /// Таймер для прогнозного времени окончания работы
-    /// </summary>
-    private DispatcherTimer? _uiRefreshTimer;
-
     /// <summary>
     /// Активная задача по которой запущен таймер
     /// </summary>
@@ -115,14 +109,27 @@ public class MainViewModel : INotifyPropertyChanged
     public string AdjustMinutes { get => _adjustMinutes; set { _adjustMinutes = value; OnPropertyChanged(); } }
     public string AdjustSeconds { get => _adjustSeconds; set { _adjustSeconds = value; OnPropertyChanged(); } }
     public bool IsAdjustPositive { get => _isAdjustPositive; set { _isAdjustPositive = value; OnPropertyChanged(); } }
+    
+    private int _editHours;
+    private int _editMinutes;
+    private int _editSeconds;
+
+    public int EditHours { get => _editHours; set { _editHours = value; OnPropertyChanged(); } }
+    public int EditMinutes { get => _editMinutes; set { _editMinutes = value; OnPropertyChanged(); } }
+    public int EditSeconds { get => _editSeconds; set { _editSeconds = value; OnPropertyChanged(); } }
 
     public ICommand AddCommand { get; }
     public ICommand ToggleTimerCommand { get; }
     public ICommand AddSubTaskCommand { get; }
 
-    // Команды удаления задач и корректировки времени
+    // Команды удаления задач
     public ICommand DeleteTaskCommand { get; }
     public ICommand DeleteSubTaskCommand { get; }
+
+    // Команды корректировки времени
+    public ICommand IncreaseTimeCommand { get; }
+    public ICommand DecreaseTimeCommand { get; }
+    public ICommand SaveSubtaskTimeCommand { get; }
     public ICommand ApplyTimeAdjustmentCommand { get; }
 
     public MainViewModel(AppDbContext db,
@@ -141,6 +148,10 @@ public class MainViewModel : INotifyPropertyChanged
 
         DeleteTaskCommand = new RelayCommand<TaskModel>(async task => await DeleteTaskAsync(task, _cts.Token));
         DeleteSubTaskCommand = new RelayCommand<SubTaskLog>(async subTask => await DeleteSubTaskAsync(subTask, _cts.Token));
+
+        IncreaseTimeCommand = new RelayCommand<SubTaskLog>(ExecuteIncreaseTime);
+        DecreaseTimeCommand = new RelayCommand<SubTaskLog>(ExecuteDecreaseTime);
+        SaveSubtaskTimeCommand = new RelayCommand<SubTaskLog>(async (subTask) => await ExecuteSaveSubtaskTimeAsync(subTask));
         ApplyTimeAdjustmentCommand = new RelayCommand<SubTaskLog>(async subTask => await ApplyTimeAdjustmentAsync(subTask, _cts.Token));
     }
 
@@ -150,6 +161,9 @@ public class MainViewModel : INotifyPropertyChanged
         SetupGlobalTimer();
     }
 
+    /// <summary>
+    /// Установка глобального таймера
+    /// </summary>
     private void SetupGlobalTimer()
     {
         // Один таймер на всё приложение вместо таймера в каждом объекте
@@ -174,6 +188,7 @@ public class MainViewModel : INotifyPropertyChanged
             }
         };
     }
+
     private void CancelAndReload()
     {
         _cts.Cancel();

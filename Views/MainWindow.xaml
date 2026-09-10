@@ -128,12 +128,34 @@
 
                                                     <!-- POPUP коррекции времени -->
                                                     <Popup IsOpen="{Binding IsChecked, ElementName=EditTimeBtn, Mode=TwoWay}"
-                                                       StaysOpen="False" Placement="Left" AllowsTransparency="True">
+                                                       StaysOpen="False" Placement="Top" AllowsTransparency="True">
                                                         <Border Background="White" CornerRadius="5" Padding="10" BorderBrush="#bdc3c7" BorderThickness="1">
-                                                            <StackPanel Orientation="Horizontal">
-                                                                <TextBox Text="{Binding DataContext.AdjustHours, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
-                                                                     Width="25" TextAlignment="Center" Margin="2"/>
-                                                                <TextBlock Text="ч" VerticalAlignment="Center"/>
+                                                            <StackPanel Orientation="Vertical"> <!--Spacing="8"-->
+                                                                <!-- Блок ввода и изменения времени -->
+                                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                                    <!-- Кнопка Минус -->
+                                                                    <Button Content="-" Command="{Binding DataContext.DecreaseTimeCommand, RelativeSource={RelativeSource AncestorType=Window}}" Width="20" Height="20" Margin="2"/>
+
+                                                                    <!-- Часы -->
+                                                                    <TextBox Text="{Binding DataContext.EditHours, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" Width="25" TextAlignment="Center" Margin="2" MaxLength="2"/>
+                                                                    <TextBlock Text=":" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                                    
+                                                                    <!-- Минуты -->
+                                                                    <TextBox Text="{Binding DataContext.EditMinutes, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" Width="25" TextAlignment="Center" Margin="2" MaxLength="2"/>
+                                                                    <TextBlock Text=":" VerticalAlignment="Center" Margin="0,0,5,0"/>
+
+                                                                    <!-- Секунды -->
+                                                                    <TextBox Text="{Binding DataContext.EditSeconds, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" Width="25" TextAlignment="Center" Margin="2" MaxLength="2"/>
+                                                                    <TextBlock Text=":" VerticalAlignment="Center" Margin="0,0,5,0"/>
+
+                                                                    <!-- Кнопка Плюс -->
+                                                                    <Button Content="+" Command="{Binding DataContext.IncreaseTimeCommand, RelativeSource={RelativeSource AncestorType=Window}}" Width="20" Height="20" Margin="2"/>
+                                                                </StackPanel>
+
+                                                                <!-- Кнопка Применить -->
+                                                                <Button Content="Применить" 
+                                                                    Command="{Binding DataContext.SaveSubtaskTimeCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                                    HorizontalAlignment="Stretch" Padding="5,2"/>
                                                             </StackPanel>
                                                         </Border>
                                                     </Popup>
