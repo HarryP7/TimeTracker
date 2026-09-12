@@ -9,8 +9,7 @@ public class GeneralInfoTimeDayRepository(AppDbContext db) : IGeneralInfoTimeDay
     public async Task<GeneralInfoTimeDay?> GetGeneralInfoTimeDayAsync(DateOnly selectedDate, CancellationToken ct) =>
         await db.GeneralInfoTimeDays
         .AsNoTracking()
-        .Where(d => d.Date == selectedDate)
-        .FirstOrDefaultAsync(ct);
+        .FirstOrDefaultAsync(d => d.Date == selectedDate, ct);
 
     public async Task AddOrUpdateGeneralInfoAsync(GeneralInfoTimeDay dayInfo, CancellationToken ct)
     {

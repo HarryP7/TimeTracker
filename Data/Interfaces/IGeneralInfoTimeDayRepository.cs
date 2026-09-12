@@ -4,6 +4,9 @@ namespace TimeTracker.Data.Interfaces;
 
 public interface IGeneralInfoTimeDayRepository
 {
-    Task<GeneralInfoTimeDay?> GetGeneralInfoTimeDayAsync(DateOnly date, CancellationToken ct);
+    /// <summary>
+    /// Получить информацию о времени по дате
+    /// </summary>
+    Task<GeneralInfoTimeDay?> GetGeneralInfoTimeDayAsync(DateOnly selectedDate, CancellationToken ct);
     Task AddOrUpdateGeneralInfoAsync(GeneralInfoTimeDay dayInfo, CancellationToken ct);
 }

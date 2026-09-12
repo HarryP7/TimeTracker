@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Runtime.CompilerServices;
+using TimeTracker.Services;
 
 namespace TimeTracker.Models;
 
@@ -97,8 +98,7 @@ public class SubTaskLog : INotifyPropertyChanged
     {
         get
         {
-            var ts = TimeSpan.FromSeconds(SecondsSpent);
-            return string.Create(null, $"{ts.Hours:D2}:{ts.Minutes:D2}:{ts.Seconds:D2}");
+            return TimeCalculationService.FormatTime(SecondsSpent);
         }
     }
 

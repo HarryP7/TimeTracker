@@ -13,6 +13,11 @@ public class TaskRepository(AppDbContext db) : ITaskRepository
         .OrderByDescending(t => t.LastUpdatedAt)
         .ToArrayAsync(ct);
 
+    public async Task<TaskModel?> GetTaskByIdAsync(int taskId, CancellationToken ct) =>
+        await db.Tasks
+            .Where(t => t.Id == taskId)
+            .FirstOrDefaultAsync(ct);
+
     public async Task AddTaskAsync(TaskModel task, CancellationToken ct)
     {
         db.ChangeTracker.Clear();

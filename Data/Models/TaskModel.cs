@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Runtime.CompilerServices;
+using TimeTracker.Services;
 
 namespace TimeTracker.Models;
 
@@ -53,9 +54,7 @@ public class TaskModel : INotifyPropertyChanged
     {
         get
         {
-            // Оптимизация аллокаций: структуры TimeSpan не аллоцируют память в куче
-            var ts = TimeSpan.FromSeconds(TotalDaySeconds);
-            return string.Create(null, $"{ts.Hours:D2}:{ts.Minutes:D2}:{ts.Seconds:D2}");
+            return TimeCalculationService.FormatTime(TotalDaySeconds);
         }
     }
 

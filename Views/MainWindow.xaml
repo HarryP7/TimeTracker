@@ -134,28 +134,34 @@
                                                                 <!-- Блок ввода и изменения времени -->
                                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                                     <!-- Кнопка Минус -->
-                                                                    <Button Content="-" Command="{Binding DataContext.DecreaseTimeCommand, RelativeSource={RelativeSource AncestorType=Window}}" Width="20" Height="20" Margin="2"/>
+                                                                    <Button Content="-" Background="#e74c3c"
+                                                                        Command="{Binding DataContext.DecreaseTimeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                        Width="20" Height="20" Margin="2"/>
 
                                                                     <!-- Часы -->
-                                                                    <TextBox Text="{Binding DataContext.EditHours, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" Width="25" TextAlignment="Center" Margin="2" MaxLength="2"/>
+                                                                    <TextBox Text="{Binding DataContext.EditHours, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
+                                                                        Width="25" TextAlignment="Center" Margin="2" MaxLength="2"/>
                                                                     <TextBlock Text=":" VerticalAlignment="Center" Margin="0,0,5,0"/>
                                                                     
                                                                     <!-- Минуты -->
-                                                                    <TextBox Text="{Binding DataContext.EditMinutes, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" Width="25" TextAlignment="Center" Margin="2" MaxLength="2"/>
+                                                                    <TextBox Text="{Binding DataContext.EditMinutes, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
+                                                                        Width="25" TextAlignment="Center" Margin="2" MaxLength="2"/>
                                                                     <TextBlock Text=":" VerticalAlignment="Center" Margin="0,0,5,0"/>
 
                                                                     <!-- Секунды -->
-                                                                    <TextBox Text="{Binding DataContext.EditSeconds, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" Width="25" TextAlignment="Center" Margin="2" MaxLength="2"/>
+                                                                    <TextBox Text="{Binding DataContext.EditSeconds, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}"
+                                                                        Width="25" TextAlignment="Center" Margin="2" MaxLength="2"/>
                                                                     <TextBlock Text=":" VerticalAlignment="Center" Margin="0,0,5,0"/>
 
                                                                     <!-- Кнопка Плюс -->
-                                                                    <Button Content="+" Command="{Binding DataContext.IncreaseTimeCommand, RelativeSource={RelativeSource AncestorType=Window}}" Width="20" Height="20" Margin="2"/>
+                                                                    <Button Content="+" Background="#27ae60" Command="{Binding DataContext.IncreaseTimeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                        Width="20" Height="20" Margin="2"/>
                                                                 </StackPanel>
 
                                                                 <!-- Кнопка Применить -->
                                                                 <Button Content="Применить" 
                                                                     Command="{Binding DataContext.SaveSubtaskTimeCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                                                    HorizontalAlignment="Stretch" Padding="5,2"/>
+                                                                    HorizontalAlignment="Stretch" Padding="5,2" Background="#3498db"/>
                                                             </StackPanel>
                                                         </Border>
                                                     </Popup>

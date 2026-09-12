@@ -35,7 +35,7 @@ public class GeneralInfoTimeDay : INotifyPropertyChanged
     /// <summary>
     /// Был ли обед
     /// </summary>
-    /*[Column("has_lunch")]
+    [Column("has_lunch")]
     public bool HasLunch
     {
         get => _hasLunch;
@@ -45,15 +45,9 @@ public class GeneralInfoTimeDay : INotifyPropertyChanged
             {
                 _hasLunch = value;
                 OnPropertyChanged();
-                //_ = SaveLunchStatusAsync(value); // Асинхронное сохранение без блокировки UI
             }
         }
-    }*/
-    //private async Task SaveLunchStatusAsync(bool hasLunch)
-    //{
-    //    // Пример вызова сервиса базы данных
-    //    await _generalInfoService.UpdateLunchStatusAsync(CurrentDayId, hasLunch);
-    //}
+    }
 
 
     public event PropertyChangedEventHandler? PropertyChanged;

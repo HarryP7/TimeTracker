@@ -6,6 +6,8 @@ using System.Windows;
 using TimeTracker.Data;
 using TimeTracker.Data.Interfaces;
 using TimeTracker.Data.Repositories;
+using TimeTracker.Data.Services;
+using TimeTracker.Services;
 using TimeTracker.ViewModels;
 using TimeTracker.Views;
 
@@ -44,7 +46,11 @@ public partial class App : Application
                 services.AddScoped<ITaskRepository, TaskRepository>();
                 services.AddScoped<ISubTaskRepository, SubTaskRepository>();
                 services.AddScoped<IGeneralInfoTimeDayRepository, GeneralInfoTimeDayRepository>();
-
+                
+                // Регистрация сервисов
+                services.AddScoped<IDayLogService, DayLogService>();
+                services.AddScoped<TaskManagementService>();
+                services.AddScoped<TimeCalculationService>();
             })
             .Build();
     }
