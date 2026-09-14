@@ -22,7 +22,7 @@ public class SubTaskRepository(AppDbContext db) : ISubTaskRepository
 
     public async Task UpdateSubTaskLogAsync(SubTaskLog subTask, CancellationToken ct)
     {
-        //db.ChangeTracker.Clear();
+        db.ChangeTracker.Clear();
         db.Entry(subTask).State = EntityState.Modified;
         await db.SaveChangesAsync(ct);
     }

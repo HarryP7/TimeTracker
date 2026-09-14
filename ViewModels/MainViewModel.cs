@@ -126,8 +126,12 @@ public class MainViewModel : INotifyPropertyChanged
     public string AdjustHours { get => _adjustHours; set { _adjustHours = value; OnPropertyChanged(); } }
     public string AdjustMinutes { get => _adjustMinutes; set { _adjustMinutes = value; OnPropertyChanged(); } }
     public string AdjustSeconds { get => _adjustSeconds; set { _adjustSeconds = value; OnPropertyChanged(); } }
-    public bool IsAdjustPositive { get => _isAdjustPositive; set { _isAdjustPositive = value; OnPropertyChanged(); } }
-    
+    public bool IsAdjustPositive { 
+        get => _isAdjustPositive; 
+        set { _isAdjustPositive = value; OnPropertyChanged(); OnPropertyChanged(nameof(ApplyEditTimeText)); } }
+
+    public string ApplyEditTimeText => IsAdjustPositive ? "Прибавить" : "Вычесть";
+
     private int _editHours;
     private int _editMinutes;
     private int _editSeconds;
@@ -180,8 +184,8 @@ public class MainViewModel : INotifyPropertyChanged
 
     public async Task Initialize()
     {
-        await LoadTasksAndLogsAsync(_cts.Token);
         SetupGlobalTimer();
+        await LoadTasksAndLogsAsync(_cts.Token);
     }
 
     /// <summary>
@@ -212,13 +216,6 @@ public class MainViewModel : INotifyPropertyChanged
         };
     }
 
-    private void CancelAndReload()
-    {
-        _cts.Cancel();
-        _cts = new CancellationTokenSource();
-        _ = LoadTasksAndLogsAsync(_cts.Token);
-    }
-
     /// <summary>
     /// Загружаем задачи и подзадачи на выбранную в UI дату
     /// </summary>
@@ -246,7 +243,7 @@ public class MainViewModel : INotifyPropertyChanged
         if (_currentDayInfo != null)
         {
             StartTimeFormatted = _currentDayInfo.WorkStartTime?.ToLocalTime().ToString(@"HH\:mm\:ss") ?? "--:--:--";
-            TotalPauseFormatted = TimeCalculationService.FormatTime(_currentDayInfo.TotalPauseSeconds);
+            //TotalPauseFormatted = TimeCalculationService.FormatTime(_currentDayInfo.TotalPauseSeconds);
             
             // Обновляем флаг обеда из БД
             _isLunchIncluded = _currentDayInfo.HasLunch;
@@ -258,6 +255,13 @@ public class MainViewModel : INotifyPropertyChanged
         }
 
         RecalculateWorkDayPlan();
+    }
+
+    private void CancelAndReload()
+    {
+        _cts.Cancel();
+        _cts = new CancellationTokenSource();
+        _ = LoadTasksAndLogsAsync(_cts.Token);
     }
 
     /// <summary>
@@ -330,8 +334,8 @@ public class MainViewModel : INotifyPropertyChanged
                 //await _dayLogService.AddPauseTimeAsync(today, pauseDuration, ct);
                 _currentDayInfo.TotalPauseSeconds += pauseDuration;
                 _pauseStartedAt = null;
+                await _generalInfoTimeDayRepository.AddOrUpdateGeneralInfoAsync(_currentDayInfo!, ct);
             }
-            await _generalInfoTimeDayRepository.AddOrUpdateGeneralInfoAsync(_currentDayInfo!, ct);
 
             // Останавливаем любую другую работающую подзадачу
             if (_activeSubTask != null)
@@ -357,10 +361,10 @@ public class MainViewModel : INotifyPropertyChanged
         await SortSubtasksOnlyAsync(subTask, ct);
 
         // TODO: точно нужно здесь?
-        await LoadDayLogsAsync(ct);
+        //await LoadDayLogsAsync(ct);
 
         // Поменять на это при необходимости
-        //await RecalculateWorkDayPlan();
+        RecalculateWorkDayPlan();
     }
 
     /// <summary>
@@ -416,7 +420,8 @@ public class MainViewModel : INotifyPropertyChanged
             totalPauseSec += (int)(DateTime.UtcNow - _pauseStartedAt.Value).TotalSeconds;
         }
 
-        EstimatedEndTimeFormatted = _timeCalcService.CalculateEstimatedEndTime(_currentDayInfo.WorkStartTime.Value, totalPauseSec, IsLunchIncluded);
+        EstimatedEndTimeFormatted = _timeCalcService
+            .CalculateEstimatedEndTime(_currentDayInfo.WorkStartTime.Value, totalPauseSec, IsLunchIncluded);
 
         TotalPauseFormatted = TimeCalculationService.FormatTime(totalPauseSec);
     }
@@ -525,7 +530,7 @@ public class MainViewModel : INotifyPropertyChanged
     /// </summary>
     private void ExecuteIncreaseTime(SubTaskLog? subTask)
     {
-        if (subTask == null) return;
+        //if (subTask == null) return;
         _isAdjustPositive = true;
         // Загружаем текущее время в поля ввода
         //var ts = TimeSpan.FromSeconds(subTask.SecondsSpent);
@@ -540,7 +545,7 @@ public class MainViewModel : INotifyPropertyChanged
     /// <param name="subTask"></param>
     private void ExecuteDecreaseTime(SubTaskLog? subTask)
     {
-        if (subTask == null) return;
+        //if (subTask == null) return;
         _isAdjustPositive = false;
         // Загружаем текущее время в поля ввода
         //var ts = TimeSpan.FromSeconds(subTask.SecondsSpent);

@@ -47,31 +47,35 @@ public class DayLogService(AppDbContext db) : IDayLogService
         DateOnly date,
         CancellationToken ct)
     {
-        /*var currentDayInfo = await db.GeneralInfoTimeDays
-            .FirstOrDefaultAsync(d => d.Date == date, ct);*/
+        if (currentDayInfo is not null && currentDayInfo.WorkStartTime is not null)
+        {
+            return currentDayInfo;
+        }
+        var dbCurrentDayInfo = await db.GeneralInfoTimeDays
+            .FirstOrDefaultAsync(d => d.Date == date, ct);
 
         var startTime = DateTime.UtcNow;
 
-        if (currentDayInfo == null)
+        if (dbCurrentDayInfo == null)
         {
-            currentDayInfo = new GeneralInfoTimeDay
+            dbCurrentDayInfo = new GeneralInfoTimeDay
             {
                 Date = date,
                 WorkStartTime = startTime,
                 TotalPauseSeconds = 0,
                 HasLunch = false
             };
-            db.GeneralInfoTimeDays.Add(currentDayInfo);
+            db.GeneralInfoTimeDays.Add(dbCurrentDayInfo);
         }
-        else if (currentDayInfo.WorkStartTime == null)
+        else if (dbCurrentDayInfo.WorkStartTime == null)
         {
-            currentDayInfo.WorkStartTime = startTime;
+            dbCurrentDayInfo.WorkStartTime = startTime;
         }
 
-        db.Entry(currentDayInfo).State = EntityState.Modified;
+        //db.Entry(currentDayInfo).State = EntityState.Modified;
         await db.SaveChangesAsync(ct);
 
-        return currentDayInfo;
+        return dbCurrentDayInfo;
     }
 
     public async Task AddPauseTimeAsync(DateOnly date, int pauseSeconds, CancellationToken ct)

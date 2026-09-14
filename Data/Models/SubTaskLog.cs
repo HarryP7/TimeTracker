@@ -86,12 +86,12 @@ public class SubTaskLog : INotifyPropertyChanged
         {
             _isRunning = value;
             OnPropertyChanged();
-            OnPropertyChanged(nameof(ButtonText));
+            OnPropertyChanged(nameof(PlayBtnText));
         }
     }
 
     [NotMapped]
-    public string ButtonText => IsRunning ? "⏸" : "▶";
+    public string PlayBtnText => IsRunning ? "⏸" : "▶";
 
     [NotMapped]
     public string FormattedTime
