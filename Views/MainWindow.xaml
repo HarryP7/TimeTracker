@@ -68,19 +68,38 @@
                   CanUserAddRows="False" GridLinesVisibility="Horizontal" HeadersVisibility="Column" 
                   Background="White" RowDetailsVisibilityMode="VisibleWhenSelected">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Название задачи" Binding="{Binding Name}" Width="*"/>
-                <DataGridTextColumn Header="Всего за день" Binding="{Binding FormattedTotalTime}" Width="120" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Название задачи" Binding="{Binding Name}" Foreground="{Binding TaskTextColor}"  Width="*"/>
+                <!--<DataGridTemplateColumn Header="Название задачи" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Name}" Foreground="{Binding TaskTextColor}"/>
+                                 -->
+                                <!--Кнопка карандаш для редактирования названия задачи-->
+                                <!-- 
+                                <Button Content="✏️" Command="{Binding DataContext.EditTaskNameCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}" Width="25" Margin="5,0,0,0" Background="Transparent" BorderThickness="0"
+                                        ToolTip="Изменить название задачи"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>-->
+                <DataGridTextColumn Header="Всего за день" Binding="{Binding FormattedTotalTime}" Width="100" IsReadOnly="True"/>
 
-                <DataGridTemplateColumn Width="90">
+                <DataGridTemplateColumn Width="100">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal">
                                 <!-- Кнопка добавления подзадачи -->
                                 <Button Content="＋" Command="{Binding DataContext.AddSubTaskCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                        CommandParameter="{Binding}" Width="35" Margin="2" Background="#3498db" Foreground="White" FontWeight="Bold" BorderThickness="0"/>
+                                        CommandParameter="{Binding}" Width="25" Margin="2" Background="#3498db" Foreground="White" FontWeight="Bold" BorderThickness="0"/>
+                                <!-- Кнопка карандаш для редактирования названия задачи -->
+                                <Button Content="✏️" Command="{Binding DataContext.EditTaskNameCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}" Width="25" Margin="5,0,0,0" Background="#f1c40f" BorderThickness="0"
+                                        ToolTip="Изменить название задачи"/>
                                 <!-- Удаление главной задачи -->
                                 <Button Content="❌" Command="{Binding DataContext.DeleteTaskCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                        CommandParameter="{Binding}" Width="35" Margin="2" Background="#e74c3c" Foreground="White" BorderThickness="0"/>
+                                        CommandParameter="{Binding}" Width="25" Margin="2" Background="#e74c3c" Foreground="White" BorderThickness="0"/>
                             </StackPanel>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
@@ -102,27 +121,48 @@
                                 </DataGrid.RowStyle>
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Binding="{Binding DisplayName}" Width="640" />
-                                    <DataGridTextColumn Binding="{Binding FormattedTime}" Width="90" />
-                                    <DataGridTemplateColumn Width="150">
+                                    <!-- Колонка с названием подзадачи -->
+                                    <!--<DataGridTemplateColumn Width="640">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding DisplayName}" Foreground="{Binding SubTaskTextColor}"/>
+                                                    -->
+                                    <!-- Кнопка редактирования названия подзадачи -->
+                                    <!--
+                                                    <Button Content="✏️" Command="{Binding DataContext.EditSubTaskNameCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                            CommandParameter="{Binding}" Width="25" Margin="5,0,0,0" Background="#f1c40f" BorderThickness="0"
+                                                            ToolTip="Изменить название подзадачи"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>-->
+                                    <DataGridTextColumn Binding="{Binding FormattedTime}" Width="60" />
+                                    <DataGridTemplateColumn Width="180">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="50"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="30"/>
+                                                        <ColumnDefinition Width="30"/>
+                                                        <ColumnDefinition Width="30"/>
                                                     </Grid.ColumnDefinitions>
                                                     <!-- Кнопка «Плей» для запуска таймера выполнения родзадачи -->
                                                     <Button Grid.Column="0" Content="{Binding PlayBtnText}"
                                                         Command="{Binding DataContext.ToggleTimerCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                        CommandParameter="{Binding}" Margin="2" Padding="8,2"/>
+                                                        CommandParameter="{Binding}" Margin="2" Padding="8,2" ToolTip="Запустить таймер" />
 
-                                                    <!-- Кнопка «Карандаш» для вызова Попапа корректировки -->
-                                                    <ToggleButton x:Name="EditTimeBtn" Grid.Column="1" Content="✏️" Margin="2" Padding="4,2"
-                                                              Background="#f1c40f" BorderThickness="0"/>
+                                                    <!-- Кнопка «Карандаш» для вызова Попапа корректировки времени -->
+                                                    <ToggleButton x:Name="EditTimeBtn" Grid.Column="1" Content="🕓" Margin="2" Padding="4,2"
+                                                              Background="#f1c40f" BorderThickness="0" ToolTip="Изменить время подзадачи"/>
+
+                                                    <Button Content="✏️" Command="{Binding DataContext.EditSubTaskNameCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}" Grid.Column="2" Margin="5,0,0,0" Background="#f1c40f" BorderThickness="0"
+                                                        ToolTip="Изменить название подзадачи"/>
 
                                                     <!-- Удаление отдельной подзадачи -->
-                                                    <Button Grid.Column="2" Content="❌"
+                                                    <Button Grid.Column="3" Content="❌"
                                                         Command="{Binding DataContext.DeleteSubTaskCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                         CommandParameter="{Binding}" Margin="2" Padding="4,2" Background="#e74c3c" Foreground="White" BorderThickness="0"/>
 
@@ -130,8 +170,20 @@
                                                     <Popup IsOpen="{Binding IsChecked, ElementName=EditTimeBtn, Mode=TwoWay}"
                                                        StaysOpen="False" Placement="Top" AllowsTransparency="True">
                                                         <Border Background="White" CornerRadius="5" Padding="10" BorderBrush="#bdc3c7" BorderThickness="1">
-                                                            <StackPanel Orientation="Vertical">
-                                                                <!--Spacing="8"-->
+                                                            <StackPanel Orientation="Vertical" Margin="0,0,0,5">
+                                                                <!-- Название подзадачи -->
+                                                                <!--<StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                                    <TextBlock Text="Подзадача: " FontWeight="Bold" VerticalAlignment="Center" Foreground="#57606f"/>
+                                                                    --><!--<ComboBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                                                                              Width="300" Margin="5,0,0,0" VerticalAlignment="Center"
+                                                                              IsEditable="True"
+                                                                              ItemsSource="{Binding DataContext.HistorySubTaskNames, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                              DropDownOpened="ComboBox_DropDownOpened"/>-->
+                                                                    <!-- Кнопка сохранения названия подзадачи --><!--
+                                                                    <Button Content="Изменить" Command="{Binding DataContext.EditSubTaskNameCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                            CommandParameter="{Binding}" Width="70" Margin="5,0,0,0" Background="#3498db" Foreground="White" BorderThickness="0"/>
+                                                                </StackPanel>-->
+
                                                                 <!-- Блок ввода и изменения времени -->
                                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                                     <!-- Кнопка Минус -->
@@ -160,9 +212,9 @@
                                                                         Width="20" Height="20" Margin="2"/>
                                                                 </StackPanel>
 
-                                                                <!-- Кнопка Применить -->
-                                                                <Button Content="Применить" 
-                                                                    Command="{Binding DataContext.SaveSubtaskTimeCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                                <!-- Кнопка Применить (меняет текст в зависимости от флага) -->
+                                                                <Button Content="{Binding DataContext.ApplyEditTimeText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    Command="{Binding DataContext.SaveSubtaskTimeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                     CommandParameter="{Binding}" HorizontalAlignment="Stretch" Padding="5,2" Background="#3498db"/>
                                                             </StackPanel>
                                                         </Border>

@@ -106,6 +106,10 @@ public class SubTaskLog : INotifyPropertyChanged
     [NotMapped]
     public string FormattedUpdatedAt => $"Изменено: {LastUpdatedAt.ToLocalTime():HH:mm:ss}";
 
+    // Цвет текста для подзадач: серый, если не была запущена сегодня
+    [NotMapped]
+    public string SubTaskTextColor => IsRunning || CreatedAt == DateOnly.FromDateTime(DateTime.Today) ? "#000000" : "#808080";
+
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string prop = "") =>

@@ -45,4 +45,11 @@ public class TaskRepository(AppDbContext db) : ITaskRepository
             await db.SaveChangesAsync(ct);
         }
     }
+
+    public async Task UpdateTaskAsync(TaskModel task, CancellationToken ct)
+    {
+        db.ChangeTracker.Clear();
+        db.Entry(task).State = EntityState.Modified;
+        await db.SaveChangesAsync(ct);
+    }
 }
