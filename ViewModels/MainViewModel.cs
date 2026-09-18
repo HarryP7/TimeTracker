@@ -45,11 +45,6 @@ public class MainViewModel : INotifyPropertyChanged
 
     private string _newTaskName = string.Empty;
     private DateTime _selectedDate = DateTime.Today;
-
-    /// <summary>
-    /// История названий подзадач для автодополнения
-    /// </summary>
-    //private ObservableCollection<string> _historySubTaskNames = new();
     
     /// <summary>
     /// Формат общего затраченнго времени работы
@@ -242,33 +237,10 @@ public class MainViewModel : INotifyPropertyChanged
 
         await _taskManagementService.LoadTasksAndLogsAsync(Tasks, selectedDateUi, ct);
 
-        // Инициализируем историю подзадач для автодополнения
-        //InitializeHistorySubTaskNames();
-
         CalculateTotalTime();
 
         await LoadDayLogsAsync(ct);
     }
-
-    /// <summary>
-    /// Инициализация истории подзадач для автодополнения
-    /// </summary>
-    /*private void InitializeHistorySubTaskNames()
-    {
-        // Получаем все уникальные названия подзадач из всех задач
-        var allSubTaskNames = Tasks
-            .SelectMany(t => t.SubTasks.Where(st => !string.IsNullOrWhiteSpace(st.Name)))
-            .Select(st => st.Name!)
-            .Distinct()
-            .OrderByDescending(n => Tasks.SelectMany(t => t.SubTasks).Where(st => st.Name == n).Max(st => st.LastUpdatedAt))
-            .ToArray();
-
-        HistorySubTaskNames.Clear();
-        foreach (var name in allSubTaskNames)
-        {
-            HistorySubTaskNames.Add(name);
-        }
-    }*/
 
     /// <summary>
     /// Загружаем общую информацию времени по дню
@@ -330,12 +302,6 @@ public class MainViewModel : INotifyPropertyChanged
         // Используем стандартный InputBox от VB для быстрого ввода без создания лишних окон/попапов (Самый простой вариант)
         string subTaskName = Microsoft.VisualBasic.Interaction.InputBox("Введите название подзадачи:", "Новая подзадача");
         if (string.IsNullOrWhiteSpace(subTaskName)) return;
-
-        // Добавляем в историю для автодополнения
-        /*if (!HistorySubTaskNames.Contains(subTaskName))
-        {
-            HistorySubTaskNames.Insert(0, subTaskName);
-        }*/
 
         var subTask = await _taskManagementService.AddSubTaskAsync(parentTask, subTaskName, ct);
 
@@ -405,11 +371,7 @@ public class MainViewModel : INotifyPropertyChanged
 
         await SortSubtasksOnlyAsync(subTask, ct);
 
-        // TODO: точно нужно здесь?
         await LoadDayLogsAsync(ct);
-
-        // Поменять на это при необходимости
-        //RecalculateWorkDayPlan();
     }
 
     /// <summary>

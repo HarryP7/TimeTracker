@@ -30,19 +30,4 @@ public partial class MainWindow : Window
     /// <param name="sender"></param>
     /// <param name="e"></param>
     private void CheckBox_Unchecked(object sender, RoutedEventArgs e) { }
-
-    /// <summary>
-    /// Обработчик открытия ComboBox для автодополнения
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
-    /*private void ComboBox_DropDownOpened(object sender, System.EventArgs e)
-    {
-        // Обновляем источник данных при открытии
-        if (sender is System.Windows.Controls.ComboBox comboBox && comboBox.ItemsSource is System.Collections.IEnumerable)
-        {
-            // Просто обновляем, чтобы показать актуальные данные
-            comboBox.IsDropDownOpen = true;
-        }
-    }*/
 }
