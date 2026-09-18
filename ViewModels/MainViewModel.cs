@@ -390,16 +390,13 @@ public class MainViewModel : INotifyPropertyChanged
                 uiParent.SubTasks.Insert(0, activeSubTask);
             }
 
-            /*var dbParent = await _db.Tasks
-                .Where(t => t.Id == parentId)
-                .FirstOrDefaultAsync(ct);*/
-
             // Тихо обновляем дату апдейта родителя в БД
             var dbParent = await _taskRepository.GetTaskByIdAsync(activeSubTask.TaskId, ct);
 
             if (dbParent != null)
             {
                 dbParent.LastUpdatedAt = DateTime.UtcNow;
+                await _taskRepository.UpdateTaskAsync(dbParent, ct);
             }
 
             // Обновляем дату апдейта активной подзадачи в БД
