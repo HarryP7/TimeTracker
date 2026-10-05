@@ -90,6 +90,11 @@ public class MainViewModel : INotifyPropertyChanged
 
     public string NewTaskName { get => _newTaskName; set { _newTaskName = value; OnPropertyChanged(); } }
     public DateTime SelectedDate { get => _selectedDate; set { _selectedDate = value; OnPropertyChanged(); CancelAndReload(); } }
+    
+    /// <summary>
+    /// История названий подзадач для автодополнения
+    /// </summary>
+    //public ObservableCollection<string> HistorySubTaskNames { get => _historySubTaskNames; set { _historySubTaskNames = value; OnPropertyChanged(); } }
     public string TotalTimeFormatted { get => _totalTimeFormatted; set { _totalTimeFormatted = value; OnPropertyChanged(); } }
 
     /// <summary>
@@ -154,6 +159,10 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand SaveSubtaskTimeCommand { get; }
     public ICommand ApplyTimeAdjustmentCommand { get; }
 
+    // Команды для редактирования названий
+    public ICommand EditSubTaskNameCommand { get; }
+    public ICommand EditTaskNameCommand { get; }
+
     public MainViewModel(
         ITaskRepository taskRepository,
         ISubTaskRepository subTaskRepository,
@@ -172,6 +181,8 @@ public class MainViewModel : INotifyPropertyChanged
         AddCommand = new RelayCommand<object>(async _ => await AddTaskAsync(_cts.Token));
         ToggleTimerCommand = new RelayCommand<SubTaskLog>(async (subTask) => await ToggleTimerAsync(subTask, _cts.Token));
         AddSubTaskCommand = new RelayCommand<TaskModel>(async (task) => await AddSubTaskAsync(task, _cts.Token));
+        EditSubTaskNameCommand = new RelayCommand<SubTaskLog>(async (subTask) => await EditSubTaskNameAsync(subTask, _cts.Token));
+        EditTaskNameCommand = new RelayCommand<TaskModel>(async (task) => await EditTaskNameAsync(task, _cts.Token));
 
         DeleteTaskCommand = new RelayCommand<TaskModel>(async task => await DeleteTaskAsync(task, _cts.Token));
         DeleteSubTaskCommand = new RelayCommand<SubTaskLog>(async subTask => await DeleteSubTaskAsync(subTask, _cts.Token));
@@ -360,11 +371,7 @@ public class MainViewModel : INotifyPropertyChanged
 
         await SortSubtasksOnlyAsync(subTask, ct);
 
-        // TODO: точно нужно здесь?
-        //await LoadDayLogsAsync(ct);
-
-        // Поменять на это при необходимости
-        RecalculateWorkDayPlan();
+        await LoadDayLogsAsync(ct);
     }
 
     /// <summary>
@@ -383,16 +390,13 @@ public class MainViewModel : INotifyPropertyChanged
                 uiParent.SubTasks.Insert(0, activeSubTask);
             }
 
-            /*var dbParent = await _db.Tasks
-                .Where(t => t.Id == parentId)
-                .FirstOrDefaultAsync(ct);*/
-
             // Тихо обновляем дату апдейта родителя в БД
             var dbParent = await _taskRepository.GetTaskByIdAsync(activeSubTask.TaskId, ct);
 
             if (dbParent != null)
             {
                 dbParent.LastUpdatedAt = DateTime.UtcNow;
+                await _taskRepository.UpdateTaskAsync(dbParent, ct);
             }
 
             // Обновляем дату апдейта активной подзадачи в БД
@@ -592,6 +596,48 @@ public class MainViewModel : INotifyPropertyChanged
         if (_currentDayInfo == null) return;
 
         await _dayLogService.UpdateLunchStatusAsync(_currentDayInfo, _isLunchIncluded, ct);
+    }
+
+    /// <summary>
+    /// Редактирование названия подзадачи
+    /// </summary>
+    private async Task EditSubTaskNameAsync(SubTaskLog? subTask, CancellationToken ct)
+    {
+        if (subTask == null) return;
+
+        var originalName = subTask.Name;
+        string? newName = Microsoft.VisualBasic.Interaction.InputBox(
+            "Введите новое название подзадачи:",
+            "Редактирование подзадачи",
+            originalName ?? "");
+
+        if (!string.IsNullOrEmpty(newName) && newName != originalName)
+        {
+            subTask.Name = newName;
+            subTask.LastUpdatedAt = DateTime.UtcNow;
+            await _subTaskRepository.UpdateSubTaskLogAsync(subTask, ct);
+        }
+    }
+
+    /// <summary>
+    /// Редактирование названия задачи
+    /// </summary>
+    private async Task EditTaskNameAsync(TaskModel? task, CancellationToken ct)
+    {
+        if (task == null) return;
+
+        var originalName = task.Name;
+        string? newName = Microsoft.VisualBasic.Interaction.InputBox(
+            "Введите новое название задачи:",
+            "Редактирование задачи",
+            originalName);
+
+        if (!string.IsNullOrEmpty(newName) && newName != originalName)
+        {
+            task.Name = newName;
+            task.LastUpdatedAt = DateTime.UtcNow;
+            await _taskRepository.UpdateTaskAsync(task, ct);
+        }
     }
 
     public async Task CloseConnection()

@@ -14,4 +14,9 @@ public interface ITaskRepository
     /// Каскадное удаление из БД
     /// </summary>
     Task DeleteTaskCascadingAsync(int taskId, CancellationToken ct);
+
+    /// <summary>
+    /// Обновить задачу в БД
+    /// </summary>
+    Task UpdateTaskAsync(TaskModel task, CancellationToken ct);
 }

@@ -58,6 +58,17 @@ public class TaskModel : INotifyPropertyChanged
         }
     }
 
+    // Цвет текста для задач: серый, если ни одна подзадача не была запущена сегодня
+    [NotMapped]
+    public string TaskTextColor
+    {
+        get
+        {
+            bool hasRunningOrToday = SubTasks.Any(st => st.IsRunning || st.CreatedAt == DateOnly.FromDateTime(DateTime.Today));
+            return hasRunningOrToday ? "#000000" : "#808080";
+        }
+    }
+
     public event PropertyChangedEventHandler PropertyChanged;
 
     protected void OnPropertyChanged([CallerMemberName] string prop = "") =>

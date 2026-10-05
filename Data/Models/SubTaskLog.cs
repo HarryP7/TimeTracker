@@ -106,7 +106,6 @@ public class SubTaskLog : INotifyPropertyChanged
     [NotMapped]
     public string FormattedUpdatedAt => $"Изменено: {LastUpdatedAt.ToLocalTime():HH:mm:ss}";
 
-
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string prop = "") =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
