@@ -27,12 +27,9 @@ public partial class App : Application
         AppHost = Host.CreateDefaultBuilder()
             .ConfigureServices((context, services) =>
             {
-                // Получаем строку подключения из appsettings.json
-                string? connectionString = context.Configuration.GetConnectionString("DefaultConnection");
-
                 // Регистрируем DbContext в DI-контейнере
                 services.AddDbContext<AppDbContext>(options =>
-                    options.UseNpgsql(connectionString));
+                    options.UseSqlite(context.Configuration.GetConnectionString("DefaultConnection")));
 
                 // Регистрируем ViewModels и Windows
                 services.AddTransient<MainViewModel>();
