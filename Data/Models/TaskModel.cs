@@ -12,6 +12,7 @@ public class TaskModel : INotifyPropertyChanged
     private int _id;
     private string _name;
     private int _totalDaySeconds;
+    private bool _isExpanded;
 
     [Column("id")]
     public int Id { get => _id; set { _id = value; OnPropertyChanged(); } }
@@ -68,6 +69,23 @@ public class TaskModel : INotifyPropertyChanged
             return hasRunningOrToday ? "#000000" : "#808080";
         }
     }
+
+    /// <summary>
+    /// Флаг для управления видимостью подзадач (раскрыть/скрыть)
+    /// </summary>
+    [NotMapped]
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set
+        {
+            _isExpanded = value;
+            OnPropertyChanged();
+        }
+    }
+
+    private RelayCommand<TaskModel>? _toggleExpandCommand;
+    public RelayCommand<TaskModel> ToggleExpandCommand => _toggleExpandCommand ??= new RelayCommand<TaskModel>(_ => IsExpanded = !IsExpanded);
 
     public event PropertyChangedEventHandler PropertyChanged;
 
