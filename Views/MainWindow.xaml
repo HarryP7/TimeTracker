@@ -64,10 +64,21 @@
         </Grid>
 
         <!-- Основная таблица задач -->
-        <DataGrid Grid.Row="2" ItemsSource="{Binding Tasks}" AutoGenerateColumns="False" 
-                  CanUserAddRows="False" GridLinesVisibility="Horizontal" HeadersVisibility="Column" 
-                  Background="White" RowDetailsVisibilityMode="VisibleWhenSelected">
+        <DataGrid Grid.Row="2" ItemsSource="{Binding Tasks}" AutoGenerateColumns="False"
+                  CanUserAddRows="False" GridLinesVisibility="Horizontal" HeadersVisibility="Column"
+                  Background="White" RowDetailsVisibilityMode="Visible">
             <DataGrid.Columns>
+                <!-- Кнопка раскрытия/скрытия подзадач -->
+                <DataGridTemplateColumn Width="30">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="{Binding IsExpanded, Converter={StaticResource ExpandCollapseConverter}}"
+                                Command="{Binding ToggleExpandCommand}" Width="25" Margin="2" Background="#95a5a6" Foreground="White" FontWeight="Bold" BorderThickness="0"
+                                ToolTip="Раскрыть/скрыть подзадачи"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
                 <DataGridTextColumn Header="Название задачи" Binding="{Binding Name}" Foreground="{Binding TaskTextColor}"  Width="*"/>
                 <DataGridTextColumn Header="Всего за день" Binding="{Binding FormattedTotalTime}" Width="100" IsReadOnly="True"/>
 
@@ -94,9 +105,10 @@
             <!-- Детали строки: Список подзадач, разворачивается при выборе задачи -->
             <DataGrid.RowDetailsTemplate>
                 <DataTemplate>
-                    <Border Background="#f1f2f6" Padding="10" BorderBrush="#dcdde1" BorderThickness="0,1,0,1">
+                    <Border Background="#f1f2f6" Padding="10" BorderBrush="#dcdde1" BorderThickness="0,1,0,1"
+                            Visibility="{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <StackPanel>
-                            <!--<TextBlock Text="Подзадачи:" FontWeight="Bold" Margin="5,0,0,5" Foreground="#57606f"/>-->
+                            <!-- Подзадачи -->
                             <DataGrid ItemsSource="{Binding SubTasks}" AutoGenerateColumns="False" CanUserAddRows="False" 
                                       HeadersVisibility="None" Background="Transparent" BorderThickness="0" GridLinesVisibility="None" IsReadOnly="True">
                                 <DataGrid.RowStyle>
@@ -105,33 +117,39 @@
                                     </Style>
                                 </DataGrid.RowStyle>
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Binding="{Binding DisplayName}" Width="640" />
-                                    <DataGridTextColumn Binding="{Binding FormattedTime}" Width="60" />
-                                    <DataGridTemplateColumn Width="180">
+                                    <!-- Кнопка «Плей» для запуска таймера выполнения подзадачи -->
+                                    <DataGridTemplateColumn Width="50">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Content="{Binding PlayBtnText}"
+                                                    Command="{Binding DataContext.ToggleTimerCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}" Background="#27ae60" Foreground="White" Margin="2" Padding="8,2" ToolTip="Запустить таймер" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Binding="{Binding DisplayName}" Width="595" />
+                                    <DataGridTextColumn Binding="{Binding FormattedTime}" Width="100" />
+                                    <!--Действия с подзадачей-->
+                                    <DataGridTemplateColumn Width="130">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="50"/>
                                                         <ColumnDefinition Width="30"/>
                                                         <ColumnDefinition Width="30"/>
                                                         <ColumnDefinition Width="30"/>
                                                     </Grid.ColumnDefinitions>
-                                                    <!-- Кнопка «Плей» для запуска таймера выполнения родзадачи -->
-                                                    <Button Grid.Column="0" Content="{Binding PlayBtnText}"
-                                                        Command="{Binding DataContext.ToggleTimerCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                        CommandParameter="{Binding}" Margin="2" Padding="8,2" ToolTip="Запустить таймер" />
-
-                                                    <!-- Кнопка «Карандаш» для вызова Попапа корректировки времени -->
-                                                    <ToggleButton x:Name="EditTimeBtn" Grid.Column="1" Content="🕓" Margin="2" Padding="4,2"
+                                                    <!-- Кнопка «Время» для вызова Попапа корректировки времени -->
+                                                    <ToggleButton x:Name="EditTimeBtn" Grid.Column="0" Content="🕓" Margin="2" Padding="4,2"
                                                               Background="#f1c40f" BorderThickness="0" ToolTip="Изменить время подзадачи"/>
 
+                                                    <!-- Кнопка «Карандаш» для вызова модалки изменения названия подзадачи -->
                                                     <Button Content="✏️" Command="{Binding DataContext.EditSubTaskNameCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                        CommandParameter="{Binding}" Grid.Column="2" Margin="5,0,0,0" Background="#f1c40f" BorderThickness="0"
+                                                        CommandParameter="{Binding}" Grid.Column="1" Margin="5,0,0,0" Background="#f1c40f" BorderThickness="0"
                                                         ToolTip="Изменить название подзадачи"/>
 
                                                     <!-- Удаление отдельной подзадачи -->
-                                                    <Button Grid.Column="3" Content="❌"
+                                                    <Button Grid.Column="2" Content="❌"
                                                         Command="{Binding DataContext.DeleteSubTaskCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                         CommandParameter="{Binding}" Margin="2" Padding="4,2" Background="#e74c3c" Foreground="White" BorderThickness="0"/>
 
@@ -189,3 +207,4 @@
     </Grid>
 
 </Window>
+
