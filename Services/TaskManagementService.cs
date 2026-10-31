@@ -45,7 +45,7 @@ public class TaskManagementService(
                     SecondsSpent = 0,
                     LastUpdatedAt = DateTime.UtcNow
                 };
-                await subTaskRepository.AddSubTaskAsync(defaultSubTask, ct);
+                //await subTaskRepository.AddSubTaskAsync(defaultSubTask, ct);
 
                 subTasksByTask = [defaultSubTask];
             }

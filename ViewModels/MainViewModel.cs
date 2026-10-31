@@ -364,7 +364,7 @@ public class MainViewModel : INotifyPropertyChanged
             _activeSubTask.IsRunning = true;
             _activeSubTask.LastUpdatedAt = DateTime.UtcNow;
 
-            await _subTaskRepository.UpdateSubTaskLogAsync(_activeSubTask, ct);
+            await _subTaskRepository.AddOrUpdateSubTaskLogAsync(_activeSubTask, ct);
 
             _globalTimer?.Start();
         }

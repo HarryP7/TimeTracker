@@ -27,6 +27,18 @@ public class SubTaskRepository(AppDbContext db) : ISubTaskRepository
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task AddOrUpdateSubTaskLogAsync(SubTaskLog subTask, CancellationToken ct)
+    {
+        if (subTask.Id == 0)
+        {
+            await AddSubTaskAsync(subTask, ct);
+        }
+        else
+        {
+            await UpdateSubTaskLogAsync(subTask, ct);
+        }
+    }
+
     public async Task DeleteSubTaskLogAsync(int subTaskId, CancellationToken ct)
     {
         //db.ChangeTracker.Clear();
