@@ -27,6 +27,10 @@ namespace TimeTracker.Data.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("has_lunch");
 
+                    b.Property<DateTime?>("PauseStartedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("pause_started_at");
+
                     b.Property<int>("TotalPauseSeconds")
                         .HasColumnType("INTEGER")
                         .HasColumnName("total_pause_seconds");

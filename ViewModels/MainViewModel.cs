@@ -47,7 +47,7 @@ public class MainViewModel : INotifyPropertyChanged
     private DateTime _selectedDate = DateTime.Today;
     
     /// <summary>
-    /// Формат общего затраченнго времени работы
+    /// Формат общего затраченного времени работы
     /// </summary>
     private string _totalTimeFormatted = "00:00:00";
 
@@ -258,11 +258,15 @@ public class MainViewModel : INotifyPropertyChanged
             
             // Обновляем флаг обеда из БД
             _isLunchIncluded = _currentDayInfo.HasLunch;
+
+            // Восстанавливаем время начала паузы из БД
+            _pauseStartedAt = _currentDayInfo.PauseStartedAt;
         }
         else
         {
             StartTimeFormatted = "--:--:--";
             TotalPauseFormatted = "00:00:00";
+            _pauseStartedAt = null;
         }
 
         RecalculateWorkDayPlan();
@@ -329,8 +333,14 @@ public class MainViewModel : INotifyPropertyChanged
 
             await _subTaskRepository.UpdateSubTaskLogAsync(subTask, ct);
 
-            // Фиксируем старт паузы
+            // Фиксируем старт паузы и сохраняем в БД
             _pauseStartedAt = DateTime.UtcNow;
+
+            if (_currentDayInfo != null)
+            {
+                _currentDayInfo.PauseStartedAt = _pauseStartedAt;
+                await _generalInfoTimeDayRepository.AddOrUpdateGeneralInfoAsync(_currentDayInfo, ct);
+            }
         }
         else
         {
@@ -345,6 +355,7 @@ public class MainViewModel : INotifyPropertyChanged
                 //await _dayLogService.AddPauseTimeAsync(today, pauseDuration, ct);
                 _currentDayInfo.TotalPauseSeconds += pauseDuration;
                 _pauseStartedAt = null;
+                _currentDayInfo.PauseStartedAt = null;
                 await _generalInfoTimeDayRepository.AddOrUpdateGeneralInfoAsync(_currentDayInfo!, ct);
             }
 

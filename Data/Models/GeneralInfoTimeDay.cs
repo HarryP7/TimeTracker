@@ -33,6 +33,12 @@ public class GeneralInfoTimeDay : INotifyPropertyChanged
     public int TotalPauseSeconds { get; set; }
 
     /// <summary>
+    /// Время начала текущей паузы (null — пауза не идёт)
+    /// </summary>
+    [Column("pause_started_at")]
+    public DateTime? PauseStartedAt { get; set; }
+
+    /// <summary>
     /// Был ли обед
     /// </summary>
     [Column("has_lunch")]

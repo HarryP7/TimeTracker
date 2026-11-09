@@ -5,3 +5,6 @@
 
 ## Применение миграции:
 > `Update-Database`
+
+## Миграция:
+> `dotnet ef migrations add AddPauseStartedAtToGeneralInfoTimeDay`
