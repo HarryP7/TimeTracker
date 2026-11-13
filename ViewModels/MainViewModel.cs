@@ -72,6 +72,11 @@ public class MainViewModel : INotifyPropertyChanged
     private string _workEndTimeFormatted = "--:--:--";
 
     /// <summary>
+    /// Формат баланса времени (затраченное время - 8 часов)
+    /// </summary>
+    private string _timeBalanceFormatted = "--:--:--";
+
+    /// <summary>
     /// Флаг: рабочий день завершен (Время завершения != null)
     /// </summary>
     private bool _isWorkCompleted;
@@ -126,6 +131,11 @@ public class MainViewModel : INotifyPropertyChanged
     /// Отображение фактического времени завершения работы
     /// </summary>
     public string WorkEndTimeFormatted { get => _workEndTimeFormatted; set { _workEndTimeFormatted = value; OnPropertyChanged(); } }
+
+    /// <summary>
+    /// Отображение баланса времени
+    /// </summary>
+    public string TimeBalanceFormatted { get => _timeBalanceFormatted; set { _timeBalanceFormatted = value; OnPropertyChanged(); } }
 
     /// <summary>
     /// Флаг для отображения: рабочий день завершен
@@ -293,13 +303,17 @@ public class MainViewModel : INotifyPropertyChanged
             // Обновляем флаг обеда из БД
             _isLunchIncluded = _currentDayInfo.HasLunch;
 
-            // Восстанавливаем время начала паузы из БД
-            _pauseStartedAt = _currentDayInfo.PauseStartedAt;
+            // Восстанавливаем время начала паузы из БД (если рабочий день не завершен)
+            _pauseStartedAt = _currentDayInfo.WorkEndTime == null ? _currentDayInfo.PauseStartedAt : null;
+
+            // Баланс времени
+            TimeBalanceFormatted = TimeCalculationService.FormatSignedTime(_currentDayInfo.TimeBalanceSeconds);
         }
         else
         {
             StartTimeFormatted = "--:--:--";
             TotalPauseFormatted = "00:00:00";
+            TimeBalanceFormatted = "--:--:--";
             _pauseStartedAt = null;
         }
 
@@ -359,6 +373,9 @@ public class MainViewModel : INotifyPropertyChanged
     private async Task ToggleTimerAsync(SubTaskLog? subTask, CancellationToken ct)
     {
         if (subTask == null) return;
+        
+        // Если рабочий день завершен таймер не запускаем
+        if (_currentDayInfo?.WorkEndTime != null) return;
 
         if (subTask.IsRunning)
         {
@@ -490,6 +507,12 @@ public class MainViewModel : INotifyPropertyChanged
 
         _currentDayInfo = await _dayLogService.CompleteWorkDayAsync(_currentDayInfo, selectedDateUi, ct);
 
+        // Расчет баланса времени: затраченное время - 8 часов
+        // (не доработанное время вычитается, переработанное — прибавляется)
+        var spentSeconds = Tasks.Sum(t => t.TotalDaySeconds);
+        _currentDayInfo.TimeBalanceSeconds = spentSeconds - 8 * 3600;
+        await _generalInfoTimeDayRepository.AddOrUpdateGeneralInfoAsync(_currentDayInfo, ct);
+
         await LoadDayLogsAsync(ct);
     }
 
@@ -506,8 +529,9 @@ public class MainViewModel : INotifyPropertyChanged
 
         var totalPauseSec = _currentDayInfo.TotalPauseSeconds;
 
-        // Если прямо сейчас идет пауза (таймер выключен), учитываем текущий простой в реальном времени
-        if (_activeSubTask is null && _pauseStartedAt != null)
+        // Если прямо сейчас идет пауза (таймер выключен), учитываем текущий простой в реальном времени.
+        // Если рабочий день завершен — время пауз не считаем
+        if (!_isWorkCompleted && _activeSubTask is null && _pauseStartedAt != null)
         {
             totalPauseSec += (int)(DateTime.UtcNow - _pauseStartedAt.Value).TotalSeconds;
         }

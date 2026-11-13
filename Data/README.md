@@ -12,3 +12,6 @@
 
 ### 2:
 > `dotnet ef migrations add AddWorkEndTimeToGeneralInfoTimeDay`
+
+### 3:
+> `Add-Migration AddTimeBalanceSecondsToGeneralInfoTimeDay`

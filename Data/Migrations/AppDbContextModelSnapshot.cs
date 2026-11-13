@@ -31,6 +31,10 @@ namespace TimeTracker.Data.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("pause_started_at");
 
+                    b.Property<int>("TimeBalanceSeconds")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("time_balance_seconds");
+
                     b.Property<int>("TotalPauseSeconds")
                         .HasColumnType("INTEGER")
                         .HasColumnName("total_pause_seconds");

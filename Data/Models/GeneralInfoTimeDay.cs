@@ -45,6 +45,13 @@ public class GeneralInfoTimeDay : INotifyPropertyChanged
     public DateTime? WorkEndTime { get; set; }
 
     /// <summary>
+    /// Баланс времени в секундах (может быть отрицательным).
+    /// Рассчитывается при завершении рабочего дня: затраченное время - 8 часов
+    /// </summary>
+    [Column("time_balance_seconds")]
+    public int TimeBalanceSeconds { get; set; }
+
+    /// <summary>
     /// Был ли обед
     /// </summary>
     [Column("has_lunch")]

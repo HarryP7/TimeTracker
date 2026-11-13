@@ -28,6 +28,16 @@ public class TimeCalculationService()
     }
 
     /// <summary>
+    /// Форматирование времени с знаком (для баланса времени): "+01:23:45" или "-00:45:00"
+    /// </summary>
+    public static string FormatSignedTime(int totalSeconds)
+    {
+        var sign = totalSeconds < 0 ? "-" : "+";
+        var ts = TimeSpan.FromSeconds(Math.Abs(totalSeconds));
+        return string.Create(null, $"{sign}{ts.Hours:D2}:{ts.Minutes:D2}:{ts.Seconds:D2}");
+    }
+
+    /// <summary>
     /// Применить корректировку времени к подзадаче
     /// </summary>
     public void ApplyTimeAdjustment(SubTaskLog subTask, int hours, int minutes, int seconds, bool isPositive)
