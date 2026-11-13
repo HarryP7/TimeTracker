@@ -35,6 +35,10 @@ namespace TimeTracker.Data.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("total_pause_seconds");
 
+                    b.Property<DateTime?>("WorkEndTime")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("work_end_time");
+
                     b.Property<DateTime?>("WorkStartTime")
                         .HasColumnType("TEXT")
                         .HasColumnName("work_start_time");

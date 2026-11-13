@@ -65,6 +65,16 @@ public class MainViewModel : INotifyPropertyChanged
     /// Формат прогнозного времени завершения работы
     /// </summary>
     private string _estimatedEndTimeFormatted = "--:--:--";
+
+    /// <summary>
+    /// Формат фактического времени завершения работы
+    /// </summary>
+    private string _workEndTimeFormatted = "--:--:--";
+
+    /// <summary>
+    /// Флаг: рабочий день завершен (Время завершения != null)
+    /// </summary>
+    private bool _isWorkCompleted;
     
     /// <summary>
     /// Флаг: был ли обед
@@ -111,6 +121,25 @@ public class MainViewModel : INotifyPropertyChanged
     /// Отображение прогнозного времени завершения работы
     /// </summary>
     public string EstimatedEndTimeFormatted { get => _estimatedEndTimeFormatted; set { _estimatedEndTimeFormatted = value; OnPropertyChanged(); } }
+
+    /// <summary>
+    /// Отображение фактического времени завершения работы
+    /// </summary>
+    public string WorkEndTimeFormatted { get => _workEndTimeFormatted; set { _workEndTimeFormatted = value; OnPropertyChanged(); } }
+
+    /// <summary>
+    /// Флаг для отображения: рабочий день завершен
+    /// </summary>
+    public bool IsWorkCompleted
+    {
+        get => _isWorkCompleted;
+        set { _isWorkCompleted = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsCompleteButtonVisible)); }
+    }
+
+    /// <summary>
+    /// Флаг для отображения кнопки «Завершение работы» (видна, если Время завершения == null)
+    /// </summary>
+    public bool IsCompleteButtonVisible => !_isWorkCompleted;
     
     /// <summary>
     /// Флаг для отображения: Был ли обед
@@ -159,6 +188,9 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand SaveSubtaskTimeCommand { get; }
     public ICommand ApplyTimeAdjustmentCommand { get; }
 
+    // Команда завершения рабочего дня
+    public ICommand CompleteWorkCommand { get; }
+
     // Команды для редактирования названий
     public ICommand EditSubTaskNameCommand { get; }
     public ICommand EditTaskNameCommand { get; }
@@ -191,6 +223,8 @@ public class MainViewModel : INotifyPropertyChanged
         DecreaseTimeCommand = new RelayCommand<SubTaskLog>(ExecuteDecreaseTime);
         SaveSubtaskTimeCommand = new RelayCommand<SubTaskLog>(async (subTask) => await ExecuteSaveSubtaskTimeAsync(subTask));
         ApplyTimeAdjustmentCommand = new RelayCommand<SubTaskLog>(async subTask => await ApplyTimeAdjustmentAsync(subTask, _cts.Token));
+
+        CompleteWorkCommand = new RelayCommand<object>(async _ => await CompleteWorkDayAsync(_cts.Token));
     }
 
     public async Task Initialize()
@@ -268,6 +302,8 @@ public class MainViewModel : INotifyPropertyChanged
             TotalPauseFormatted = "00:00:00";
             _pauseStartedAt = null;
         }
+
+        UpdateWorkEndState();
 
         RecalculateWorkDayPlan();
     }
@@ -414,6 +450,47 @@ public class MainViewModel : INotifyPropertyChanged
             activeSubTask.LastUpdatedAt = DateTime.UtcNow;
             await _subTaskRepository.UpdateSubTaskLogAsync(activeSubTask, ct);
         }
+    }
+
+    /// <summary>
+    /// Обновляет состояние «Завершение работы» на текущий день (кнопка/время)
+    /// </summary>
+    private void UpdateWorkEndState()
+    {
+        var endTime = _currentDayInfo?.WorkEndTime;
+
+        IsWorkCompleted = endTime != null;
+        WorkEndTimeFormatted = endTime?.ToLocalTime().ToString(@"HH\:mm\:ss") ?? "--:--:--";
+    }
+
+    /// <summary>
+    /// Завершение рабочего дня: фиксируем текущее время в «Фактическое завершение»
+    /// </summary>
+    private async Task CompleteWorkDayAsync(CancellationToken ct)
+    {
+        var selectedDateUi = DateOnly.FromDateTime(SelectedDate);
+
+        // Останавливаем активный таймер, если он идет
+        if (_activeSubTask != null)
+        {
+            _activeSubTask.IsRunning = false;
+            _activeSubTask.LastUpdatedAt = DateTime.UtcNow;
+            await _subTaskRepository.UpdateSubTaskLogAsync(_activeSubTask, ct);
+            _activeSubTask = null;
+            _globalTimer?.Stop();
+        }
+
+        // Если сейчас идет пауза — фиксируем её длительность
+        if (_pauseStartedAt != null && _currentDayInfo != null)
+        {
+            _currentDayInfo.TotalPauseSeconds += (int)(DateTime.UtcNow - _pauseStartedAt.Value).TotalSeconds;
+            _currentDayInfo.PauseStartedAt = null;
+            _pauseStartedAt = null;
+        }
+
+        _currentDayInfo = await _dayLogService.CompleteWorkDayAsync(_currentDayInfo, selectedDateUi, ct);
+
+        await LoadDayLogsAsync(ct);
     }
 
     /// <summary>

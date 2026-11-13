@@ -24,4 +24,9 @@ public interface IDayLogService
     /// Добавить время паузы к общему времени
     /// </summary>
     Task AddPauseTimeAsync(DateOnly date, int pauseSeconds, CancellationToken ct);
+
+    /// <summary>
+    /// Завершить рабочий день (зафиксировать время завершения)
+    /// </summary>
+    Task<GeneralInfoTimeDay> CompleteWorkDayAsync(GeneralInfoTimeDay? currentDayInfo, DateOnly date, CancellationToken ct);
 }

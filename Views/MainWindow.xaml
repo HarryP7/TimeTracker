@@ -18,13 +18,18 @@
         <!-- Верхняя аналитическая панель -->
         <Border Grid.Row="0" Background="#f8f9fa" Padding="12" CornerRadius="6" Margin="0,0,0,15" BorderBrush="#e9ecef" BorderThickness="1">
             <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal">
                     <TextBlock Text="Дата :" VerticalAlignment="Center" Margin="0,0,5,0" FontWeight="Bold"/>
                     <DatePicker SelectedDate="{Binding SelectedDate, Mode=TwoWay}" Width="110" Margin="0,0,15,0"/>
 
@@ -36,17 +41,33 @@
                 </StackPanel>
 
                 <!-- Индикатор обеда и расчет окончания -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
+                <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Left">
                     <CheckBox IsChecked="{Binding IsLunchIncluded, Mode=TwoWay}" Content="Был обед" VerticalAlignment="Center" Margin="0,0,10,0"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="2" Orientation="Horizontal">
-                    <TextBlock Text="Завершение в: " VerticalAlignment="Center" FontWeight="Bold"/>
-                    <TextBlock Text="{Binding EstimatedEndTimeFormatted}" VerticalAlignment="Center" FontSize="15"
-                               Foreground="#27ae60" FontWeight="Black" Margin="0,0,15,0"/>
-
+                <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal">
                     <TextBlock Text="Всего за день: " VerticalAlignment="Center" FontWeight="Bold"/>
                     <TextBlock Text="{Binding TotalTimeFormatted}" VerticalAlignment="Center" FontSize="15" Foreground="#2c3e50" FontWeight="Black"/>
+                </StackPanel>
+
+                <!-- Инфо по завершению рабочего дня -->
+                <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,8,0,0" HorizontalAlignment="Right">
+                    <TextBlock Text="Прогнозное завершение: " VerticalAlignment="Center" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding EstimatedEndTimeFormatted}" VerticalAlignment="Center" FontSize="15"
+                               Foreground="#27ae60" FontWeight="Black"/>
+                </StackPanel>
+                <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,8,0,0" HorizontalAlignment="Right">
+
+                    <TextBlock Text="Фактическое завершение: " VerticalAlignment="Center" FontWeight="Bold"
+                               Visibility="{Binding IsWorkCompleted, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    <TextBlock Text="{Binding WorkEndTimeFormatted}" VerticalAlignment="Center" FontSize="15"
+                               Foreground="#4266b3" FontWeight="Black"
+                               Visibility="{Binding IsWorkCompleted, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                    <Button Content="Завершение работы" Command="{Binding CompleteWorkCommand}"
+                            Padding="12,5" FontSize="13" Background="#4266b3" Foreground="White"
+                            BorderThickness="0" VerticalAlignment="Center"
+                            Visibility="{Binding IsCompleteButtonVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                 </StackPanel>
             </Grid>
         </Border>

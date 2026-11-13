@@ -90,4 +90,36 @@ public class DayLogService(AppDbContext db) : IDayLogService
             await db.SaveChangesAsync(ct);
         }
     }
+
+    public async Task<GeneralInfoTimeDay> CompleteWorkDayAsync(
+        GeneralInfoTimeDay? currentDayInfo,
+        DateOnly date,
+        CancellationToken ct)
+    {
+        db.ChangeTracker.Clear();
+
+        var endTime = DateTime.UtcNow;
+
+        var dayInfo = currentDayInfo
+            ?? await db.GeneralInfoTimeDays.FirstOrDefaultAsync(d => d.Date == date, ct);
+
+        if (dayInfo == null)
+        {
+            dayInfo = new GeneralInfoTimeDay
+            {
+                Date = date,
+                WorkEndTime = endTime
+            };
+            db.GeneralInfoTimeDays.Add(dayInfo);
+        }
+        else
+        {
+            dayInfo.WorkEndTime = endTime;
+            db.Entry(dayInfo).State = EntityState.Modified;
+        }
+
+        await db.SaveChangesAsync(ct);
+
+        return dayInfo;
+    }
 }

@@ -39,6 +39,12 @@ public class GeneralInfoTimeDay : INotifyPropertyChanged
     public DateTime? PauseStartedAt { get; set; }
 
     /// <summary>
+    /// Время завершения рабочего дня (null — день не завершён)
+    /// </summary>
+    [Column("work_end_time")]
+    public DateTime? WorkEndTime { get; set; }
+
+    /// <summary>
     /// Был ли обед
     /// </summary>
     [Column("has_lunch")]
