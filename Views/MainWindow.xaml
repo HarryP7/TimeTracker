@@ -16,9 +16,11 @@
         <!-- ============ Палитра ============ -->
         <SolidColorBrush x:Key="PrimaryBrush" Color="#4F6BED"/>
         <SolidColorBrush x:Key="SuccessBrush" Color="#22A06B"/>
-        <SolidColorBrush x:Key="WarningBrush" Color="#E8A33D"/>
-        <SolidColorBrush x:Key="DangerBrush" Color="#E5484D"/>
+        <SolidColorBrush x:Key="WarningBrush" Color="#e67e22"/>
+        <SolidColorBrush x:Key="YellowBrush" Color="#f1c40f"/>
+        <SolidColorBrush x:Key="DangerBrush" Color="#d3383d"/>
         <SolidColorBrush x:Key="PurpleBrush" Color="#8E44AD"/>
+        <SolidColorBrush x:Key="DarkBrush" Color="#303030"/>
         <SolidColorBrush x:Key="TextPrimaryBrush" Color="#1F2937"/>
         <SolidColorBrush x:Key="TextSecondaryBrush" Color="#6B7684"/>
         <SolidColorBrush x:Key="BorderBrushLight" Color="#E3E8EF"/>
@@ -443,6 +445,8 @@
                                     <Button Content="✏️" Command="{Binding DataContext.EditTaskNameCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                             CommandParameter="{Binding}" Margin="6,0,0,0"
                                             Style="{StaticResource GhostIconButton}"
+                                            Background="{StaticResource YellowBrush}"
+                                            Foreground="{StaticResource DarkBrush}"
                                             ToolTip="Изменить название задачи"/>
                                     <!-- Удаление главной задачи -->
                                     <Button Content="🗑" Command="{Binding DataContext.DeleteTaskCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
@@ -509,6 +513,8 @@
                                                     <!-- Кнопка «Время» для вызова попапа корректировки времени -->
                                                     <ToggleButton x:Name="EditTimeBtn" Grid.Column="0" Content="🕓"
                                                                   Style="{StaticResource TimeToggleBtn}"
+                                                                  Background="{StaticResource YellowBrush}"
+                                                                  Foreground="{StaticResource DarkBrush}"
                                                                   ToolTip="Изменить время подзадачи"/>
 
                                                     <!-- Кнопка «Карандаш» для изменения названия подзадачи -->
@@ -516,6 +522,8 @@
                                                             Command="{Binding DataContext.EditSubTaskNameCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                             CommandParameter="{Binding}"
                                                             Style="{StaticResource GhostIconButton}"
+                                                            Background="{StaticResource YellowBrush}"
+                                                            Foreground="{StaticResource DarkBrush}"
                                                             ToolTip="Изменить название подзадачи"/>
 
                                                     <!-- Удаление отдельной подзадачи -->
