@@ -246,10 +246,14 @@
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
             <Setter Property="Margin" Value="0,0,0,4"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="TextAlignment" Value="Center"/>
         </Style>
         <Style x:Key="MetricValue" TargetType="TextBlock">
             <Setter Property="FontSize" Value="20"/>
             <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="TextAlignment" Value="Center"/>
         </Style>
 
         <!-- ============ Подпись контекста ============ -->
@@ -296,14 +300,6 @@
                         <DatePicker SelectedDate="{Binding SelectedDate, Mode=TwoWay}" Width="120"
                                     Margin="0,0,22,0" VerticalAlignment="Center" FontSize="13"/>
 
-                        <TextBlock Text="Начало работы:" Style="{StaticResource ContextLabel}"/>
-                        <TextBlock Text="{Binding StartTimeFormatted}" Style="{StaticResource ContextValue}"
-                                   Foreground="{StaticResource PrimaryBrush}"/>
-
-                        <TextBlock Text="Паузы:" Style="{StaticResource ContextLabel}"/>
-                        <TextBlock Text="{Binding TotalPauseFormatted}" Style="{StaticResource ContextValue}"
-                                   Foreground="{StaticResource WarningBrush}"/>
-
                         <CheckBox IsChecked="{Binding IsLunchIncluded, Mode=TwoWay}" Content="Был обед"
                                   VerticalAlignment="Center" Margin="0,0,10,0" FontSize="13"
                                   Foreground="{StaticResource TextPrimaryBrush}"/>
@@ -317,11 +313,42 @@
                             Visibility="{Binding IsCompleteButtonVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                 </Grid>
 
-                <!-- Сводка дня: четыре ключевые метрики в плитках -->
-                <UniformGrid Grid.Row="1" Rows="1" Columns="4" Margin="0,14,0,0">
+                <!-- Сводка дня: ключевые метрики в плитках (2 ряда) -->
+                <Grid Grid.Row="1" Margin="0,14,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Начало работы -->
+                    <Border Grid.Row="0" Grid.Column="0" Background="{StaticResource TileBackgroundBrush}"
+                            CornerRadius="10" Padding="14,10" Margin="0,0,5,10">
+                        <StackPanel>
+                            <TextBlock Text="НАЧАЛО РАБОТЫ" Style="{StaticResource MetricLabel}"/>
+                            <TextBlock Text="{Binding StartTimeFormatted}" Style="{StaticResource MetricValue}"
+                                       Foreground="{StaticResource PrimaryBrush}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Паузы -->
+                    <Border Grid.Row="0" Grid.Column="1" Background="{StaticResource TileBackgroundBrush}"
+                            CornerRadius="10" Padding="14,10" Margin="5,0,5,10">
+                        <StackPanel>
+                            <TextBlock Text="ПАУЗЫ" Style="{StaticResource MetricLabel}"/>
+                            <TextBlock Text="{Binding TotalPauseFormatted}" Style="{StaticResource MetricValue}"
+                                       Foreground="{StaticResource WarningBrush}"/>
+                        </StackPanel>
+                    </Border>
+
                     <!-- Всего за день -->
-                    <Border Background="{StaticResource TileBackgroundBrush}" CornerRadius="10"
-                            Padding="14,10" Margin="0,0,5,0">
+                    <Border Grid.Row="0" Grid.Column="2" Background="{StaticResource TileBackgroundBrush}"
+                            CornerRadius="10" Padding="14,10" Margin="5,0,5,10">
                         <StackPanel>
                             <TextBlock Text="ВСЕГО ЗА ДЕНЬ" Style="{StaticResource MetricLabel}"/>
                             <TextBlock Text="{Binding TotalTimeFormatted}" Style="{StaticResource MetricValue}"
@@ -330,8 +357,8 @@
                     </Border>
 
                     <!-- Прогнозное завершение -->
-                    <Border Background="{StaticResource TileBackgroundBrush}" CornerRadius="10"
-                            Padding="14,10" Margin="5,0">
+                    <Border Grid.Row="0" Grid.Column="3" Background="{StaticResource TileBackgroundBrush}"
+                            CornerRadius="10" Padding="14,10" Margin="5,0,0,10">
                         <StackPanel>
                             <TextBlock Text="ПРОГНОЗ ЗАВЕРШЕНИЯ" Style="{StaticResource MetricLabel}"/>
                             <TextBlock Text="{Binding EstimatedEndTimeFormatted}" Style="{StaticResource MetricValue}"
@@ -340,8 +367,9 @@
                     </Border>
 
                     <!-- Фактическое завершение -->
-                    <Border Background="{StaticResource TileBackgroundBrush}" CornerRadius="10"
-                            Padding="14,10" Margin="5,0">
+                    <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                            Background="{StaticResource TileBackgroundBrush}"
+                            CornerRadius="10" Padding="14,10" Margin="0,0,5,0">
                         <StackPanel>
                             <TextBlock Text="ФАКТ ЗАВЕРШЕНИЯ" Style="{StaticResource MetricLabel}"/>
                             <TextBlock Text="{Binding WorkEndTimeFormatted}" Style="{StaticResource MetricValue}"
@@ -353,15 +381,16 @@
                     </Border>
 
                     <!-- Баланс времени -->
-                    <Border Background="{StaticResource TileBackgroundBrush}" CornerRadius="10"
-                            Padding="14,10" Margin="5,0,0,0">
+                    <Border Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"
+                            Background="{StaticResource TileBackgroundBrush}"
+                            CornerRadius="10" Padding="14,10" Margin="5,0,0,0">
                         <StackPanel>
                             <TextBlock Text="БАЛАНС ВРЕМЕНИ" Style="{StaticResource MetricLabel}"/>
                             <TextBlock Text="{Binding TimeBalanceFormatted}" Style="{StaticResource MetricValue}"
                                        Foreground="{StaticResource PurpleBrush}"/>
                         </StackPanel>
                     </Border>
-                </UniformGrid>
+                </Grid>
             </Grid>
         </Border>
 
